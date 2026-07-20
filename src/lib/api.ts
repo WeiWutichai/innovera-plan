@@ -6,17 +6,15 @@
 import type {
   Activity,
   Bootstrap,
+  CreateTaskInput,
+  EditTaskInput,
+  InviteInput,
   Role,
   Status,
   Task,
   User,
   UserStatus,
 } from "./types";
-import type {
-  CreateTaskInput,
-  EditTaskInput,
-  InviteInput,
-} from "@/server/store";
 
 async function req<T>(input: string, init?: RequestInit): Promise<T> {
   const res = await fetch(input, {

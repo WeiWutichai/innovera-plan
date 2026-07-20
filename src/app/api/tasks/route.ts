@@ -9,6 +9,6 @@ export async function POST(req: Request) {
   if (!body?.title || !body.title.trim()) {
     return NextResponse.json({ error: "title required" }, { status: 400 });
   }
-  const result = getStore().createTask(body);
+  const result = await getStore().createTask(body);
   return NextResponse.json(result, { status: 201 });
 }

@@ -130,6 +130,26 @@ export interface InviteForm {
   role: Role;
 }
 
+// ── API input payloads (shared by the client and the server repository) ──────
+
+export interface CreateTaskInput {
+  title: string;
+  projectId: string;
+  due: string | null;
+  status: Status;
+  urgent: boolean;
+  important: boolean;
+  tags: string[];
+}
+
+export type EditTaskInput = CreateTaskInput;
+
+export interface InviteInput {
+  name: string;
+  email: string;
+  role: Role;
+}
+
 export type ViewKey =
   | "dashboard"
   | "list"

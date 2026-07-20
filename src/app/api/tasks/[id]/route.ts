@@ -19,25 +19,25 @@ export async function PATCH(req: Request, { params }: Ctx) {
   let result: unknown = null;
   switch (action) {
     case "edit":
-      result = store.editTask(id, body.input);
+      result = await store.editTask(id, body.input);
       break;
     case "setStatus":
-      result = store.setStatus(id, body.status as Status);
+      result = await store.setStatus(id, body.status as Status);
       break;
     case "cycle":
-      result = store.cycleStatus(id, body.dir as number);
+      result = await store.cycleStatus(id, body.dir as number);
       break;
     case "setAssignee":
-      result = store.setAssignee(id, body.userId as string);
+      result = await store.setAssignee(id, body.userId as string);
       break;
     case "logTime":
-      result = store.logTime(id, body.minutes as number);
+      result = await store.logTime(id, body.minutes as number);
       break;
     case "toggleSub":
-      result = store.toggleSub(id, body.index as number);
+      result = await store.toggleSub(id, body.index as number);
       break;
     case "toggleTag":
-      result = store.toggleTag(id, body.tagId as string);
+      result = await store.toggleTag(id, body.tagId as string);
       break;
     default:
       return NextResponse.json({ error: "unknown action" }, { status: 400 });
@@ -49,7 +49,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
 // DELETE /api/tasks/:id
 export async function DELETE(_req: Request, { params }: Ctx) {
-  const result = getStore().deleteTask(params.id);
+  const result = await getStore().deleteTask(params.id);
   if (!result) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json(result);
 }

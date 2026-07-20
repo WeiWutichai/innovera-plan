@@ -16,13 +16,13 @@ export async function PATCH(req: Request, { params }: Ctx) {
   let result: unknown = null;
   switch (action) {
     case "setRole":
-      result = store.setRole(id, body.role as Role);
+      result = await store.setRole(id, body.role as Role);
       break;
     case "setStatus":
-      result = store.setUserStatus(id, body.status as UserStatus);
+      result = await store.setUserStatus(id, body.status as UserStatus);
       break;
     case "resetPw":
-      result = store.resetPassword(id);
+      result = await store.resetPassword(id);
       break;
     default:
       return NextResponse.json({ error: "unknown action" }, { status: 400 });
@@ -34,7 +34,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
 // DELETE /api/users/:id — remove a member; their tasks reassign to the owner.
 export async function DELETE(_req: Request, { params }: Ctx) {
-  const result = getStore().removeUser(params.id);
+  const result = await getStore().removeUser(params.id);
   if (!result) return NextResponse.json({ error: "cannot remove" }, { status: 400 });
   return NextResponse.json(result);
 }

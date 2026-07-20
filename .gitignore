@@ -29,3 +29,7 @@ next-env.d.ts
 
 # scratch / design source (kept locally, not part of the app build)
 .design-source/
+
+# prisma local sqlite db
+/prisma/*.db
+/prisma/*.db-journal

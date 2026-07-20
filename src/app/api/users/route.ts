@@ -9,6 +9,6 @@ export async function POST(req: Request) {
   if (!body?.name || !body.name.trim()) {
     return NextResponse.json({ error: "name required" }, { status: 400 });
   }
-  const result = getStore().inviteUser(body);
+  const result = await getStore().inviteUser(body);
   return NextResponse.json(result, { status: 201 });
 }

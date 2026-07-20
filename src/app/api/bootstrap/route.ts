@@ -5,5 +5,5 @@ export const dynamic = "force-dynamic";
 
 // GET /api/bootstrap → the full dataset the client hydrates from.
 export async function GET() {
-  return NextResponse.json(getStore().bootstrap());
+  return NextResponse.json(await getStore().bootstrap());
 }

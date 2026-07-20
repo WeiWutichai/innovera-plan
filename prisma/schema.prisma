@@ -1,0 +1,82 @@
+// INNOVERA PLAN — data model.
+// SQLite for local dev; swap the datasource provider to "postgresql" and point
+// DATABASE_URL at a Postgres instance for production — the models are portable.
+// `stack`, `subs`, and `tags` are stored as JSON strings so the shape stays
+// identical across engines and maps 1:1 to the API DTOs.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id    String @id
+  ord   Int
+  name  String
+  dot   String
+  start String
+  due   String
+  stack String // JSON: string[]
+  arch  String
+  repo  String
+  notes String
+  tasks Task[]
+}
+
+model User {
+  id     String  @id
+  ord    Int
+  name   String
+  email  String
+  role   String
+  status String
+  me     Boolean @default(false)
+  tasks  Task[]  @relation("TaskAssignee")
+}
+
+model Tag {
+  id    String @id
+  ord   Int
+  label String
+}
+
+model Task {
+  id       String  @id
+  ord      Int
+  p        String
+  title    String
+  status   String
+  imp      Boolean
+  urg      Boolean
+  due      String?
+  est      Float
+  spent    Float
+  desc     String
+  subs     String // JSON: {t:string,d:boolean}[]
+  tags     String // JSON: string[] of tag ids
+  assignee String
+
+  project      Project @relation(fields: [p], references: [id])
+  assigneeUser User    @relation("TaskAssignee", fields: [assignee], references: [id])
+
+  @@index([p])
+  @@index([assignee])
+}
+
+model Activity {
+  id     Int     @id @default(autoincrement())
+  actor  String
+  type   String
+  ts     Float // epoch ms
+  title  String?
+  status String?
+  amount String?
+  name   String?
+  role   String?
+
+  @@index([ts])
+}

@@ -1,275 +1,266 @@
 // ─────────────────────────────────────────────────────────────────────────
-// In-memory data store — stands in for a real database.
-// It is the single source of truth behind the /api route handlers. To move to
-// a real backend, reimplement these methods against your DB; the API contract
-// (and the whole client) stays unchanged.
-//
-// Kept as a process-global singleton so mutations survive Next.js dev HMR.
+// Data repository — Prisma-backed (SQLite in dev, Postgres in prod).
+// The single source of truth behind the /api route handlers. Every method
+// returns the exact same DTO shapes the client already expects, so swapping
+// from the previous in-memory store to a real database changed nothing above
+// this file (the API contract and the whole client are untouched).
 // ─────────────────────────────────────────────────────────────────────────
 
-import {
-  SEED_PROJECTS,
-  SEED_TAGS,
-  SEED_TASKS,
-  SEED_USERS,
-  seedActivity,
-} from "@/lib/seed";
+import { prisma } from "./db";
 import { STATUS_ORDER } from "@/lib/types";
 import type {
   Activity,
   Bootstrap,
+  CreateTaskInput,
+  EditTaskInput,
+  InviteInput,
   Project,
   Role,
   Status,
   Tag,
   Task,
-  TaskForm,
   User,
   UserStatus,
 } from "@/lib/types";
 
+export type { CreateTaskInput, EditTaskInput, InviteInput } from "@/lib/types";
+
 /** The current signed-in user id (activity actor). */
 const ACTOR = "u1";
 
-export interface CreateTaskInput {
-  title: string;
-  projectId: string;
-  due: string | null;
-  status: Status;
-  urgent: boolean;
-  important: boolean;
-  tags: string[];
+// Prisma row types (structural — avoids importing generated model types).
+type ProjectRow = { id: string; name: string; dot: string; start: string; due: string; stack: string; arch: string; repo: string; notes: string };
+type TaskRow = { id: string; p: string; title: string; status: string; imp: boolean; urg: boolean; due: string | null; est: number; spent: number; desc: string; subs: string; tags: string; assignee: string };
+type UserRow = { id: string; name: string; email: string; role: string; status: string; me: boolean };
+type TagRow = { id: string; label: string };
+type ActivityRow = { actor: string; type: string; ts: number; title: string | null; status: string | null; amount: string | null; name: string | null; role: string | null };
+
+// ── mappers: DB row → API DTO ────────────────────────────────────────────────
+function toProject(r: ProjectRow): Project {
+  return { id: r.id, name: r.name, dot: r.dot, start: r.start, due: r.due, stack: JSON.parse(r.stack), arch: r.arch, repo: r.repo, notes: r.notes };
+}
+function toTask(r: TaskRow): Task {
+  return {
+    id: r.id, p: r.p, title: r.title, status: r.status as Status, imp: r.imp, urg: r.urg,
+    due: r.due, est: r.est, spent: r.spent, desc: r.desc,
+    subs: JSON.parse(r.subs), tags: JSON.parse(r.tags), assignee: r.assignee,
+  };
+}
+function toUser(r: UserRow): User {
+  return { id: r.id, name: r.name, email: r.email, role: r.role as Role, status: r.status as UserStatus, ...(r.me ? { me: true } : {}) };
+}
+function toTag(r: TagRow): Tag {
+  return { id: r.id, label: r.label };
+}
+function toActivity(r: ActivityRow): Activity {
+  const a: Activity = { actor: r.actor, type: r.type as Activity["type"], ts: r.ts };
+  if (r.title) a.title = r.title;
+  if (r.status) a.status = r.status as Status;
+  if (r.amount) a.amount = r.amount;
+  if (r.name) a.name = r.name;
+  if (r.role) a.role = r.role as Role;
+  return a;
 }
 
-export interface EditTaskInput {
-  title: string;
-  projectId: string;
-  due: string | null;
-  status: Status;
-  urgent: boolean;
-  important: boolean;
-  tags: string[];
+function newId(prefix: string): string {
+  return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
-export interface InviteInput {
-  name: string;
-  email: string;
-  role: Role;
+async function log(type: Activity["type"], data: Partial<Activity> = {}): Promise<Activity> {
+  const row = await prisma.activity.create({
+    data: {
+      actor: ACTOR,
+      type,
+      ts: Date.now(),
+      title: data.title ?? null,
+      status: data.status ?? null,
+      amount: data.amount ?? null,
+      name: data.name ?? null,
+      role: data.role ?? null,
+    },
+  });
+  return toActivity(row);
 }
 
-class Store {
-  projects: Project[];
-  tasks: Task[];
-  tags: Tag[];
-  users: User[];
-  activity: Activity[];
-  private seq = 1000;
+async function nextOrd(model: "task" | "user"): Promise<number> {
+  const agg =
+    model === "task"
+      ? await prisma.task.aggregate({ _max: { ord: true } })
+      : await prisma.user.aggregate({ _max: { ord: true } });
+  return (agg._max.ord ?? 0) + 1;
+}
 
-  constructor() {
-    this.projects = clone(SEED_PROJECTS);
-    this.tasks = clone(SEED_TASKS);
-    this.tags = clone(SEED_TAGS);
-    this.users = clone(SEED_USERS);
-    this.activity = seedActivity(Date.now());
-  }
-
-  private nextId(prefix: string): string {
-    this.seq += 1;
-    return prefix + this.seq;
-  }
-
-  private log(type: Activity["type"], data: Partial<Activity> = {}): Activity {
-    const entry: Activity = { actor: ACTOR, type, ts: Date.now(), ...data };
-    this.activity = [entry, ...this.activity].slice(0, 60);
-    return entry;
-  }
-
-  bootstrap(): Bootstrap {
+const repo = {
+  async bootstrap(): Promise<Bootstrap> {
+    const [projects, tasks, tags, users, activity] = await Promise.all([
+      prisma.project.findMany({ orderBy: { ord: "asc" } }),
+      prisma.task.findMany({ orderBy: { ord: "asc" } }),
+      prisma.tag.findMany({ orderBy: { ord: "asc" } }),
+      prisma.user.findMany({ orderBy: { ord: "asc" } }),
+      prisma.activity.findMany({ orderBy: [{ ts: "desc" }, { id: "desc" }], take: 60 }),
+    ]);
     return {
-      projects: this.projects,
-      tasks: this.tasks,
-      tags: this.tags,
-      users: this.users,
-      activity: this.activity,
+      projects: projects.map(toProject),
+      tasks: tasks.map(toTask),
+      tags: tags.map(toTag),
+      users: users.map(toUser),
+      activity: activity.map(toActivity),
     };
-  }
-
-  private task(id: string): Task | undefined {
-    return this.tasks.find((t) => t.id === id);
-  }
+  },
 
   // ── task mutations ─────────────────────────────────────────────────────────
-  createTask(input: CreateTaskInput): { task: Task; activity: Activity } {
-    const task: Task = {
-      id: this.nextId("t"),
-      p: input.projectId,
-      title: input.title.trim(),
-      status: input.status,
-      imp: input.important,
-      urg: input.urgent,
-      due: input.due || null,
-      est: 0,
-      spent: 0,
-      desc: "",
-      subs: [],
-      tags: input.tags.slice(),
-      assignee: ACTOR,
-    };
-    this.tasks = [...this.tasks, task];
-    const activity = this.log("add", { title: task.title });
-    return { task, activity };
-  }
+  async createTask(input: CreateTaskInput): Promise<{ task: Task; activity: Activity }> {
+    const row = await prisma.task.create({
+      data: {
+        id: newId("t"),
+        ord: await nextOrd("task"),
+        p: input.projectId,
+        title: input.title.trim(),
+        status: input.status,
+        imp: input.important,
+        urg: input.urgent,
+        due: input.due || null,
+        est: 0,
+        spent: 0,
+        desc: "",
+        subs: "[]",
+        tags: JSON.stringify(input.tags),
+        assignee: ACTOR,
+      },
+    });
+    const activity = await log("add", { title: row.title });
+    return { task: toTask(row), activity };
+  },
 
-  editTask(id: string, input: EditTaskInput): { task: Task; activity: Activity } | null {
-    const t = this.task(id);
-    if (!t) return null;
-    const task: Task = {
-      ...t,
-      title: input.title.trim(),
-      p: input.projectId,
-      due: input.due || null,
-      status: input.status,
-      imp: input.important,
-      urg: input.urgent,
-      tags: input.tags.slice(),
-    };
-    this.tasks = this.tasks.map((x) => (x.id === id ? task : x));
-    const activity = this.log("edit", { title: task.title });
-    return { task, activity };
-  }
+  async editTask(id: string, input: EditTaskInput): Promise<{ task: Task; activity: Activity } | null> {
+    if (!(await prisma.task.findUnique({ where: { id } }))) return null;
+    const row = await prisma.task.update({
+      where: { id },
+      data: {
+        title: input.title.trim(),
+        p: input.projectId,
+        due: input.due || null,
+        status: input.status,
+        imp: input.important,
+        urg: input.urgent,
+        tags: JSON.stringify(input.tags),
+      },
+    });
+    const activity = await log("edit", { title: row.title });
+    return { task: toTask(row), activity };
+  },
 
-  setStatus(id: string, status: Status): { task: Task; activity: Activity } | null {
-    const t = this.task(id);
-    if (!t) return null;
-    const task = { ...t, status };
-    this.tasks = this.tasks.map((x) => (x.id === id ? task : x));
-    const activity = this.log("status", { title: task.title, status });
-    return { task, activity };
-  }
+  async setStatus(id: string, status: Status): Promise<{ task: Task; activity: Activity } | null> {
+    if (!(await prisma.task.findUnique({ where: { id } }))) return null;
+    const row = await prisma.task.update({ where: { id }, data: { status } });
+    const activity = await log("status", { title: row.title, status });
+    return { task: toTask(row), activity };
+  },
 
-  // Kanban chevron next/prev: mutate status silently — the prototype's cycle()
-  // logs no activity (only the drag-drop path, which calls setStatus, does).
-  cycleStatus(id: string, dir: number): { task: Task } | null {
-    const t = this.task(id);
+  // Kanban chevron: mutate silently — the prototype's cycle() logs no activity.
+  async cycleStatus(id: string, dir: number): Promise<{ task: Task } | null> {
+    const t = await prisma.task.findUnique({ where: { id } });
     if (!t) return null;
-    let i = STATUS_ORDER.indexOf(t.status) + dir;
+    let i = STATUS_ORDER.indexOf(t.status as Status) + dir;
     i = Math.max(0, Math.min(STATUS_ORDER.length - 1, i));
-    const status = STATUS_ORDER[i];
-    const task = { ...t, status };
-    this.tasks = this.tasks.map((x) => (x.id === id ? task : x));
-    return { task };
-  }
+    const row = await prisma.task.update({ where: { id }, data: { status: STATUS_ORDER[i] } });
+    return { task: toTask(row) };
+  },
 
-  toggleSub(id: string, index: number): { task: Task } | null {
-    const t = this.task(id);
+  async toggleSub(id: string, index: number): Promise<{ task: Task } | null> {
+    const t = await prisma.task.findUnique({ where: { id } });
     if (!t) return null;
-    const task = { ...t, subs: t.subs.map((s, i) => (i === index ? { ...s, d: !s.d } : s)) };
-    this.tasks = this.tasks.map((x) => (x.id === id ? task : x));
-    return { task };
-  }
+    const subs = JSON.parse(t.subs) as { t: string; d: boolean }[];
+    if (subs[index]) subs[index] = { ...subs[index], d: !subs[index].d };
+    const row = await prisma.task.update({ where: { id }, data: { subs: JSON.stringify(subs) } });
+    return { task: toTask(row) };
+  },
 
-  toggleTag(id: string, tagId: string): { task: Task } | null {
-    const t = this.task(id);
+  async toggleTag(id: string, tagId: string): Promise<{ task: Task } | null> {
+    const t = await prisma.task.findUnique({ where: { id } });
     if (!t) return null;
-    const has = (t.tags || []).includes(tagId);
-    const task = { ...t, tags: has ? t.tags.filter((x) => x !== tagId) : [...(t.tags || []), tagId] };
-    this.tasks = this.tasks.map((x) => (x.id === id ? task : x));
-    return { task };
-  }
+    const tags = JSON.parse(t.tags) as string[];
+    const next = tags.includes(tagId) ? tags.filter((x) => x !== tagId) : [...tags, tagId];
+    const row = await prisma.task.update({ where: { id }, data: { tags: JSON.stringify(next) } });
+    return { task: toTask(row) };
+  },
 
-  setAssignee(id: string, userId: string): { task: Task; activity: Activity } | null {
-    const t = this.task(id);
-    if (!t) return null;
-    const u = this.users.find((x) => x.id === userId);
-    const task = { ...t, assignee: userId };
-    this.tasks = this.tasks.map((x) => (x.id === id ? task : x));
-    const activity = this.log("assign", { title: task.title, name: u ? u.name : "" });
-    return { task, activity };
-  }
+  async setAssignee(id: string, userId: string): Promise<{ task: Task; activity: Activity } | null> {
+    if (!(await prisma.task.findUnique({ where: { id } }))) return null;
+    const u = await prisma.user.findUnique({ where: { id: userId } });
+    const row = await prisma.task.update({ where: { id }, data: { assignee: userId } });
+    const activity = await log("assign", { title: row.title, name: u ? u.name : "" });
+    return { task: toTask(row), activity };
+  },
 
-  logTime(id: string, minutes: number): { task: Task; activity: Activity } | null {
-    const t = this.task(id);
+  async logTime(id: string, minutes: number): Promise<{ task: Task; activity: Activity } | null> {
+    const t = await prisma.task.findUnique({ where: { id } });
     if (!t) return null;
-    const task = { ...t, spent: Math.round((t.spent + minutes / 60) * 100) / 100 };
-    this.tasks = this.tasks.map((x) => (x.id === id ? task : x));
+    const spent = Math.round((t.spent + minutes / 60) * 100) / 100;
+    const row = await prisma.task.update({ where: { id }, data: { spent } });
     const amount = minutes >= 60 ? minutes / 60 + "h" : minutes + "m";
-    const activity = this.log("time", { title: task.title, amount });
-    return { task, activity };
-  }
+    const activity = await log("time", { title: row.title, amount });
+    return { task: toTask(row), activity };
+  },
 
-  deleteTask(id: string): { removedId: string; activity: Activity } | null {
-    const t = this.task(id);
+  async deleteTask(id: string): Promise<{ removedId: string; activity: Activity } | null> {
+    const t = await prisma.task.findUnique({ where: { id } });
     if (!t) return null;
-    this.tasks = this.tasks.filter((x) => x.id !== id);
-    const activity = this.log("del", { title: t.title });
+    await prisma.task.delete({ where: { id } });
+    const activity = await log("del", { title: t.title });
     return { removedId: id, activity };
-  }
+  },
 
   // ── user mutations ─────────────────────────────────────────────────────────
-  inviteUser(input: InviteInput): { user: User; activity: Activity } {
-    const user: User = {
-      id: this.nextId("u"),
-      name: input.name.trim(),
-      email: input.email.trim() || "—",
-      role: input.role,
-      status: "invited",
-    };
-    this.users = [...this.users, user];
-    const activity = this.log("invite", { name: user.name });
-    return { user, activity };
-  }
-
-  setRole(id: string, role: Role): { user: User; activity: Activity } | null {
-    const u = this.users.find((x) => x.id === id);
-    if (!u) return null;
-    const user = { ...u, role };
-    this.users = this.users.map((x) => (x.id === id ? user : x));
-    const activity = this.log("role", { name: user.name, role });
-    return { user, activity };
-  }
-
-  setUserStatus(id: string, status: UserStatus): { user: User } | null {
-    const u = this.users.find((x) => x.id === id);
-    if (!u) return null;
-    const user = { ...u, status };
-    this.users = this.users.map((x) => (x.id === id ? user : x));
-    return { user };
-  }
-
-  resetPassword(id: string): { activity: Activity; user: User } | null {
-    const u = this.users.find((x) => x.id === id);
-    if (!u) return null;
-    const activity = this.log("reset", { name: u.name });
-    return { activity, user: u };
-  }
-
-  removeUser(id: string): { removedId: string; reassigned: Task[] } | null {
-    const u = this.users.find((x) => x.id === id);
-    if (!u || u.me) return null;
-    this.users = this.users.filter((x) => x.id !== id);
-    const reassigned: Task[] = [];
-    this.tasks = this.tasks.map((t) => {
-      if (t.assignee === id) {
-        const nt = { ...t, assignee: ACTOR };
-        reassigned.push(nt);
-        return nt;
-      }
-      return t;
+  async inviteUser(input: InviteInput): Promise<{ user: User; activity: Activity }> {
+    const row = await prisma.user.create({
+      data: {
+        id: newId("u"),
+        ord: await nextOrd("user"),
+        name: input.name.trim(),
+        email: input.email.trim() || "—",
+        role: input.role,
+        status: "invited",
+        me: false,
+      },
     });
+    const activity = await log("invite", { name: row.name });
+    return { user: toUser(row), activity };
+  },
+
+  async setRole(id: string, role: Role): Promise<{ user: User; activity: Activity } | null> {
+    if (!(await prisma.user.findUnique({ where: { id } }))) return null;
+    const row = await prisma.user.update({ where: { id }, data: { role } });
+    const activity = await log("role", { name: row.name, role });
+    return { user: toUser(row), activity };
+  },
+
+  async setUserStatus(id: string, status: UserStatus): Promise<{ user: User } | null> {
+    if (!(await prisma.user.findUnique({ where: { id } }))) return null;
+    const row = await prisma.user.update({ where: { id }, data: { status } });
+    return { user: toUser(row) };
+  },
+
+  async resetPassword(id: string): Promise<{ activity: Activity; user: User } | null> {
+    const u = await prisma.user.findUnique({ where: { id } });
+    if (!u) return null;
+    const activity = await log("reset", { name: u.name });
+    return { activity, user: toUser(u) };
+  },
+
+  async removeUser(id: string): Promise<{ removedId: string; reassigned: Task[] } | null> {
+    const u = await prisma.user.findUnique({ where: { id } });
+    if (!u || u.me) return null;
+    const affected = await prisma.task.findMany({ where: { assignee: id } });
+    await prisma.$transaction([
+      prisma.task.updateMany({ where: { assignee: id }, data: { assignee: ACTOR } }),
+      prisma.user.delete({ where: { id } }),
+    ]);
+    const reassigned = affected.map((r) => ({ ...toTask(r), assignee: ACTOR }));
     return { removedId: id, reassigned };
-  }
-}
+  },
+};
 
-function clone<T>(v: T): T {
-  return JSON.parse(JSON.stringify(v));
-}
-
-// Persist across dev HMR reloads.
-const globalForStore = globalThis as unknown as { __innoveraStore?: Store };
-
-export function getStore(): Store {
-  if (!globalForStore.__innoveraStore) {
-    globalForStore.__innoveraStore = new Store();
-  }
-  return globalForStore.__innoveraStore;
+export function getStore() {
+  return repo;
 }

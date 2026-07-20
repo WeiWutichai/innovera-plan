@@ -29,23 +29,29 @@ npm run build      # production build — run before declaring UI work done
 npm run start      # serve the production build
 npm run typecheck  # tsc --noEmit — run after any .ts/.tsx change
 npm run lint       # next lint
+npm run db:push    # apply prisma/schema.prisma to the SQLite dev DB
+npm run db:seed    # wipe + reload demo data (prisma/seed.ts)
+npm run db:studio  # browse the DB
 ```
+
+First-time setup: `npm install` (auto-runs `prisma generate`) → `npm run db:push` → `npm run db:seed`.
 
 There is no unit-test suite yet; verify by `npm run typecheck` + `npm run build`, and (when asked) by loading the app in a browser.
 
 ## Architecture
 
 ```
+prisma/           schema.prisma (SQLite dev → Postgres prod), seed.ts
 src/
   app/            layout (next/font: Archivo + Noto Sans Thai), page (responsive shell switch),
                   modernist.css (design system), globals.css, api/ (backend route handlers)
   lib/            types, seed, dates, domain (quad/dueInfo/decorate), selectors, i18n, api (client)
-  server/         store.ts — in-memory repository singleton (the "backend")
+  server/         db.ts (Prisma client singleton), store.ts — Prisma-backed repository (the backend)
   store/          planner.tsx (context + reducer + async actions), hooks, useIsMobile
   components/     ui, forms, TaskDetailBody (shared); desktop/ and mobile/ (the two shells)
 ```
 
-Data flow (one direction): **UI → `store/planner.tsx` action → `lib/api.ts` → `app/api/**/route.ts` → `server/store.ts`**. View data comes from pure selectors: **view → `lib/selectors.ts` → `lib/domain.ts`**.
+Data flow (one direction): **UI → `store/planner.tsx` action → `lib/api.ts` → `app/api/**/route.ts` → `server/store.ts` → Prisma → DB**. View data comes from pure selectors: **view → `lib/selectors.ts` → `lib/domain.ts`**.
 
 Desktop and mobile are **separate shells** chosen by viewport (breakpoint 900px in `store/useIsMobile.ts`). They share one store, one data layer, one dictionary. Desktop has an Activity view; mobile has a Time-summary view instead.
 
@@ -55,7 +61,7 @@ Desktop and mobile are **separate shells** chosen by viewport (breakpoint 900px 
 - **Design tokens only.** Colours/spacing/shadows come from CSS variables (`var(--color-*)`, `var(--space-*)`, …) defined in `src/app/modernist.css`. Never hard-code a hex or a font name the tokens already carry. Modernist style = Archivo type, red `#ec3013` accent, **zero border-radius**, 2px dividers, flush-left labels.
 - **All visible strings go through i18n.** Add a key to `src/lib/i18n.ts` (both `th` and `en`) and read it via `L.*`. Do not hard-code Thai/English text in a component.
 - **Fixed clock.** The app is calibrated to `TODAY = 2026-07-12` (`src/lib/dates.ts`). The seeded due dates, calendar (July 2026), and timeline depend on it — don't change it casually.
-- **Keep the backend swappable.** The UI must not import `src/server/store.ts` directly — only through `src/lib/api.ts`. To wire a real database, reimplement `store.ts`; the API contract and client stay unchanged.
+- **Keep the storage engine swappable.** The UI must not import `src/server/store.ts` or `src/server/db.ts` directly — only through `src/lib/api.ts`. `store.ts` is a Prisma-backed repository; its method signatures + return DTOs are the contract. Prisma stays server-only (never import it in a `"use client"` file). To move to Postgres: switch the `datasource` provider in `prisma/schema.prisma` and point `DATABASE_URL` at Postgres.
 - Mutations return the authoritative entity (+ any activity entry); the client applies an optimistic update then reconciles with the response.
 
 ## Claude Code extensions in this repo
