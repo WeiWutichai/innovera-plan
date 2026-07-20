@@ -51,6 +51,7 @@ interface State {
   showAdd: boolean;
   editId: string | null;
   showInvite: boolean;
+  showChangePassword: boolean;
   lang: Lang;
   authed: boolean;
   currentUserId: string | null;
@@ -92,6 +93,7 @@ const initialState: State = {
   showAdd: false,
   editId: null,
   showInvite: false,
+  showChangePassword: false,
   lang: "th",
   authed: false,
   currentUserId: null,
@@ -181,6 +183,9 @@ export interface PlannerActions {
   setLang: (l: Lang) => void;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
+  openChangePassword: () => void;
+  closeChangePassword: () => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ ok: boolean; error?: string }>;
   setTagFilter: (id: string | null) => void;
   setAssigneeFilter: (id: string | null) => void;
   clearFilters: () => void;
@@ -318,6 +323,17 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
           users: [],
           activity: [],
         });
+      },
+      openChangePassword: () => ui({ showChangePassword: true }),
+      closeChangePassword: () => ui({ showChangePassword: false }),
+      changePassword: async (currentPassword, newPassword) => {
+        const r = await api.auth.changePassword(currentPassword, newPassword);
+        if (!r.ok) return r;
+        const L = dict(stateRef.current.lang);
+        ui({ showChangePassword: false, toast: L.cp_success });
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => ui({ toast: "" }), 2800);
+        return { ok: true };
       },
       setTagFilter: (id) => ui({ tagFilter: id }),
       setAssigneeFilter: (id) => ui({ assigneeFilter: id }),

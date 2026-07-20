@@ -80,10 +80,13 @@ export function Sidebar() {
         })}
       </div>
 
-      {/* Footer: date + sign-out. The sign-out control is not in the original
-          design — it is a necessary addition for real authentication. */}
-      <div style={{ padding: "13px 16px", borderTop: "2px solid var(--color-divider)", display: "flex", alignItems: "center", gap: 9, fontSize: 12, color: "var(--color-neutral-700)" }}>
+      {/* Footer: date + change-password + sign-out. The account controls are not
+          in the original design — necessary additions for real authentication. */}
+      <div style={{ padding: "13px 16px", borderTop: "2px solid var(--color-divider)", display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-neutral-700)" }}>
         <Icon name="calendar-clock" /><span style={{ flex: 1 }}>{L.today_full}</span>
+        <button className="btn btn-icon btn-secondary" title={L.cp_title} onClick={() => actions.openChangePassword()} style={{ width: 30, height: 30 }}>
+          <Icon name="key-round" size={15} />
+        </button>
         <button className="btn btn-icon btn-secondary" title={L.logout} onClick={() => actions.logout()} style={{ width: 30, height: 30 }}>
           <Icon name="log-out" size={15} />
         </button>

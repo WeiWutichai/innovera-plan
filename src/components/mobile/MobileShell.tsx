@@ -12,6 +12,7 @@ import { TaskSheet } from "./TaskSheet";
 import { AddSheet, InviteSheet } from "./AddSheet";
 import { NotifSheet } from "./NotifSheet";
 import { MobileLogin } from "./MobileLogin";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { Toast } from "@/components/Toast";
 import {
   MCalendar,
@@ -55,6 +56,7 @@ export function MobileShell() {
       {state.selId && <TaskSheet />}
       <AddSheet />
       <InviteSheet />
+      <ChangePasswordDialog />
       {!state.authed && <MobileLogin />}
       <Toast />
     </div>

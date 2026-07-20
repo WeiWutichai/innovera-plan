@@ -121,6 +121,22 @@ const repo = {
     await prisma.user.updateMany({ where: { id: userId }, data: { sessionVersion: { increment: 1 } } });
   },
 
+  /**
+   * Change a user's own password. Verifies the current password, then updates it
+   * and bumps sessionVersion (revoking OTHER sessions). Returns the new
+   * sessionVersion so the caller can re-issue the current session's token and
+   * keep it alive. Returns { ok:false } if the current password is wrong.
+   */
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ ok: boolean; sessionVersion?: number }> {
+    const row = await prisma.user.findUnique({ where: { id: userId } });
+    if (!row || !(await verifyPassword(currentPassword, row.password))) return { ok: false };
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { password: await hashPassword(newPassword), sessionVersion: { increment: 1 } },
+    });
+    return { ok: true, sessionVersion: updated.sessionVersion };
+  },
+
   async bootstrap(currentUserId: string): Promise<Bootstrap> {
     const [projects, tasks, tags, users, activity] = await Promise.all([
       prisma.project.findMany({ orderBy: { ord: "asc" } }),

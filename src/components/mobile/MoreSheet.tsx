@@ -26,10 +26,17 @@ export function MoreSheet() {
             );
           })}
         </div>
-        {/* Sign-out is not in the original design — a necessary addition for auth. */}
+        {/* Account controls are not in the original design — necessary for auth. */}
+        <button
+          onClick={() => { actions.closeMore(); actions.openChangePassword(); }}
+          style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", marginTop: 14, padding: "13px 14px", border: "1px solid var(--color-divider)", background: "var(--color-bg)", color: "var(--color-text)", cursor: "pointer", font: "600 15px var(--font-body)", textAlign: "left" }}
+        >
+          <Icon name="key-round" size={20} />
+          {L.cp_title}
+        </button>
         <button
           onClick={() => { actions.closeMore(); actions.logout(); }}
-          style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", marginTop: 14, padding: "13px 14px", border: "1px solid var(--color-divider)", background: "var(--color-bg)", color: "var(--color-text)", cursor: "pointer", font: "600 15px var(--font-body)", textAlign: "left" }}
+          style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", marginTop: 8, padding: "13px 14px", border: "1px solid var(--color-divider)", background: "var(--color-bg)", color: "var(--color-text)", cursor: "pointer", font: "600 15px var(--font-body)", textAlign: "left" }}
         >
           <Icon name="log-out" size={20} />
           {L.logout}

@@ -148,6 +148,16 @@ export interface Dict {
   lg_error: string;
   logout: string;
 
+  cp_title: string;
+  cp_current: string;
+  cp_new: string;
+  cp_confirm: string;
+  cp_submit: string;
+  cp_success: string;
+  cp_err_current: string;
+  cp_err_short: string;
+  cp_err_mismatch: string;
+
   activity_h: string;
   activity_sub: string;
 }
@@ -338,6 +348,16 @@ export const th: Dict = {
   lg_error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
   logout: "ออกจากระบบ",
 
+  cp_title: "เปลี่ยนรหัสผ่าน",
+  cp_current: "รหัสผ่านปัจจุบัน",
+  cp_new: "รหัสผ่านใหม่",
+  cp_confirm: "ยืนยันรหัสผ่านใหม่",
+  cp_submit: "เปลี่ยนรหัสผ่าน",
+  cp_success: "เปลี่ยนรหัสผ่านเรียบร้อย",
+  cp_err_current: "รหัสผ่านปัจจุบันไม่ถูกต้อง",
+  cp_err_short: "รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร",
+  cp_err_mismatch: "รหัสผ่านใหม่ไม่ตรงกัน",
+
   activity_h: "บันทึกกิจกรรม",
   activity_sub: "กิจกรรมล่าสุดทั้งหมด",
 };
@@ -524,6 +544,16 @@ export const en: Dict = {
   lg_tagline: "Plan · Track · Ship",
   lg_error: "Invalid email or password",
   logout: "Sign out",
+
+  cp_title: "Change password",
+  cp_current: "Current password",
+  cp_new: "New password",
+  cp_confirm: "Confirm new password",
+  cp_submit: "Change password",
+  cp_success: "Password changed",
+  cp_err_current: "Current password is incorrect",
+  cp_err_short: "New password must be at least 8 characters",
+  cp_err_mismatch: "New passwords don't match",
 
   activity_h: "Activity",
   activity_sub: "Recent activity across the workspace",

@@ -30,6 +30,8 @@ The app is calibrated to a fixed "today" of **2026-07-12** so the seeded due dat
 
 Real credential auth: bcrypt-hashed passwords, a signed (JWS/HS256) httpOnly session cookie via [jose](https://github.com/panva/jose), and Edge middleware (`src/proxy.ts`) that 401s every `/api/*` request without a valid session — so the backend is genuinely protected, not just the UI. The activity **actor** and the "me" highlight come from the verified session, never the request body, so whoever signs in becomes the current user. Set a strong `AUTH_SECRET` (≥16 chars) in production.
 
+Tokens carry a `sessionVersion`, so **logout, password reset, and disabling an account revoke already-issued tokens immediately** (not only on expiry). Signed-in users can **change their own password** (revokes their other sessions but keeps the current one). User-management actions (roles, disable, invite, reset) are **admin-only**, enforced server-side.
+
 ## What's inside
 
 Eight views, fully bilingual, backed by a REST-ish API:

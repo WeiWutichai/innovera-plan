@@ -155,6 +155,14 @@ export interface LoginInput {
   password: string;
 }
 
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}
+
+/** Minimum length for a new password. */
+export const MIN_PASSWORD_LENGTH = 8;
+
 export type ViewKey =
   | "dashboard"
   | "list"

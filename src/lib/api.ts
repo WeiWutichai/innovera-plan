@@ -64,6 +64,16 @@ export const api = {
     logout: async (): Promise<void> => {
       await fetch("/api/auth/logout", { method: "POST" });
     },
+    changePassword: async (currentPassword: string, newPassword: string): Promise<{ ok: boolean; error?: string }> => {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      if (res.ok) return { ok: true };
+      const e = (await res.json().catch(() => ({}))) as { error?: string };
+      return { ok: false, error: e.error || "failed" };
+    },
   },
 
   // tasks
