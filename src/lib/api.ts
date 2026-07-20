@@ -43,6 +43,29 @@ const patchUser = (id: string, body: Record<string, unknown>) =>
 export const api = {
   bootstrap: () => req<Bootstrap>("/api/bootstrap", { cache: "no-store" }),
 
+  // auth (these tolerate 401 without throwing)
+  auth: {
+    me: async (): Promise<{ user: User } | null> => {
+      const res = await fetch("/api/auth/me", { cache: "no-store" });
+      if (res.status === 401) return null;
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+    login: async (email: string, password: string): Promise<{ ok: boolean; user?: User; error?: string }> => {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (res.ok) return { ok: true, ...(await res.json()) };
+      const e = (await res.json().catch(() => ({}))) as { error?: string };
+      return { ok: false, error: e.error || "login failed" };
+    },
+    logout: async (): Promise<void> => {
+      await fetch("/api/auth/logout", { method: "POST" });
+    },
+  },
+
   // tasks
   createTask: (input: CreateTaskInput) =>
     req<{ task: Task; activity: Activity }>("/api/tasks", {

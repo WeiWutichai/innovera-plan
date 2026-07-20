@@ -53,6 +53,7 @@ interface State {
   showInvite: boolean;
   lang: Lang;
   authed: boolean;
+  currentUserId: string | null;
   tagFilter: string | null;
   assigneeFilter: string | null;
   showNotif: boolean;
@@ -93,6 +94,7 @@ const initialState: State = {
   showInvite: false,
   lang: "th",
   authed: false,
+  currentUserId: null,
   tagFilter: null,
   assigneeFilter: null,
   showNotif: false,
@@ -177,7 +179,8 @@ export interface PlannerActions {
   openInvite: () => void;
   closeInvite: () => void;
   setLang: (l: Lang) => void;
-  login: () => void;
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  logout: () => Promise<void>;
   setTagFilter: (id: string | null) => void;
   setAssigneeFilter: (id: string | null) => void;
   clearFilters: () => void;
@@ -234,9 +237,20 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => {
-    load();
+  // On mount, restore the session (if any) before loading data.
+  const checkSession = useCallback(async () => {
+    const res = await api.auth.me().catch(() => null);
+    if (res?.user) {
+      dispatch({ type: "SET_UI", patch: { authed: true, currentUserId: res.user.id } });
+      await load();
+    } else {
+      dispatch({ type: "SET_UI", patch: { authed: false, currentUserId: null, loading: false } });
+    }
   }, [load]);
+
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
 
   // reconcile helper: replace task + prepend activity from a server response
   const reconcile = useCallback((res: { task?: Task; activity?: Activity }) => {
@@ -281,7 +295,30 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       openInvite: () => ui({ showInvite: true }),
       closeInvite: () => ui({ showInvite: false }),
       setLang: (l) => ui({ lang: l }),
-      login: () => ui({ authed: true }),
+      login: async (email, password) => {
+        const r = await api.auth.login(email, password);
+        if (!r.ok) return { ok: false, error: r.error };
+        ui({ authed: true, currentUserId: r.user?.id ?? null });
+        await load();
+        return { ok: true };
+      },
+      logout: async () => {
+        await api.auth.logout();
+        ui({
+          authed: false,
+          currentUserId: null,
+          view: "dashboard",
+          selId: null,
+          showAdd: false,
+          showInvite: false,
+          showNotif: false,
+          showMore: false,
+          projects: [],
+          tasks: [],
+          users: [],
+          activity: [],
+        });
+      },
       setTagFilter: (id) => ui({ tagFilter: id }),
       setAssigneeFilter: (id) => ui({ assigneeFilter: id }),
       clearFilters: () => ui({ tagFilter: null, assigneeFilter: null }),

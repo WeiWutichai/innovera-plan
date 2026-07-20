@@ -1,12 +1,15 @@
 // ─────────────────────────────────────────────────────────────────────────
 // Data repository — Prisma-backed (SQLite in dev, Postgres in prod).
 // The single source of truth behind the /api route handlers. Every method
-// returns the exact same DTO shapes the client already expects, so swapping
-// from the previous in-memory store to a real database changed nothing above
-// this file (the API contract and the whole client are untouched).
+// returns the exact same DTO shapes the client already expects.
+//
+// The activity `actor` and the "me" flag come from the authenticated user
+// (passed in from the verified session by the route handlers) — never from the
+// request body, so a client cannot spoof who it is.
 // ─────────────────────────────────────────────────────────────────────────
 
 import { prisma } from "./db";
+import { DUMMY_HASH, hashPassword, verifyPassword } from "./auth";
 import { STATUS_ORDER } from "@/lib/types";
 import type {
   Activity,
@@ -25,17 +28,14 @@ import type {
 
 export type { CreateTaskInput, EditTaskInput, InviteInput } from "@/lib/types";
 
-/** The current signed-in user id (activity actor). */
-const ACTOR = "u1";
-
-// Prisma row types (structural — avoids importing generated model types).
+// Prisma row types (structural).
 type ProjectRow = { id: string; name: string; dot: string; start: string; due: string; stack: string; arch: string; repo: string; notes: string };
 type TaskRow = { id: string; p: string; title: string; status: string; imp: boolean; urg: boolean; due: string | null; est: number; spent: number; desc: string; subs: string; tags: string; assignee: string };
-type UserRow = { id: string; name: string; email: string; role: string; status: string; me: boolean };
+type UserRow = { id: string; name: string; email: string; password: string; role: string; status: string; me: boolean };
 type TagRow = { id: string; label: string };
 type ActivityRow = { actor: string; type: string; ts: number; title: string | null; status: string | null; amount: string | null; name: string | null; role: string | null };
 
-// ── mappers: DB row → API DTO ────────────────────────────────────────────────
+// ── mappers: DB row → API DTO (never leak the password hash) ─────────────────
 function toProject(r: ProjectRow): Project {
   return { id: r.id, name: r.name, dot: r.dot, start: r.start, due: r.due, stack: JSON.parse(r.stack), arch: r.arch, repo: r.repo, notes: r.notes };
 }
@@ -46,8 +46,10 @@ function toTask(r: TaskRow): Task {
     subs: JSON.parse(r.subs), tags: JSON.parse(r.tags), assignee: r.assignee,
   };
 }
-function toUser(r: UserRow): User {
-  return { id: r.id, name: r.name, email: r.email, role: r.role as Role, status: r.status as UserStatus, ...(r.me ? { me: true } : {}) };
+/** `meId` (the current session user) decides the "me" flag when provided. */
+function toUser(r: UserRow, meId?: string): User {
+  const me = meId != null ? r.id === meId : !!r.me;
+  return { id: r.id, name: r.name, email: r.email, role: r.role as Role, status: r.status as UserStatus, ...(me ? { me: true } : {}) };
 }
 function toTag(r: TagRow): Tag {
   return { id: r.id, label: r.label };
@@ -66,10 +68,10 @@ function newId(prefix: string): string {
   return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
-async function log(type: Activity["type"], data: Partial<Activity> = {}): Promise<Activity> {
+async function log(actor: string, type: Activity["type"], data: Partial<Activity> = {}): Promise<Activity> {
   const row = await prisma.activity.create({
     data: {
-      actor: ACTOR,
+      actor,
       type,
       ts: Date.now(),
       title: data.title ?? null,
@@ -91,7 +93,27 @@ async function nextOrd(model: "task" | "user"): Promise<number> {
 }
 
 const repo = {
-  async bootstrap(): Promise<Bootstrap> {
+  // ── auth ────────────────────────────────────────────────────────────────────
+  async verifyCredentials(email: string, password: string): Promise<User | null> {
+    const row = await prisma.user.findUnique({ where: { email } });
+    // Only active accounts can sign in (invited/disabled cannot). Always run a
+    // bcrypt compare — against a dummy hash when there's no eligible user — so
+    // the response time doesn't reveal whether the account exists.
+    const active = !!row && row.status === "active";
+    const ok = await verifyPassword(password, active ? row!.password : DUMMY_HASH);
+    if (!active || !ok) return null;
+    return toUser(row!, row!.id);
+  },
+
+  // Used to resolve the current session user; a disabled/deleted account
+  // resolves to null so an already-issued token stops working immediately.
+  async getUser(id: string): Promise<User | null> {
+    const row = await prisma.user.findUnique({ where: { id } });
+    if (!row || row.status === "disabled") return null;
+    return toUser(row, row.id);
+  },
+
+  async bootstrap(currentUserId: string): Promise<Bootstrap> {
     const [projects, tasks, tags, users, activity] = await Promise.all([
       prisma.project.findMany({ orderBy: { ord: "asc" } }),
       prisma.task.findMany({ orderBy: { ord: "asc" } }),
@@ -103,13 +125,13 @@ const repo = {
       projects: projects.map(toProject),
       tasks: tasks.map(toTask),
       tags: tags.map(toTag),
-      users: users.map(toUser),
+      users: users.map((u) => toUser(u, currentUserId)),
       activity: activity.map(toActivity),
     };
   },
 
-  // ── task mutations ─────────────────────────────────────────────────────────
-  async createTask(input: CreateTaskInput): Promise<{ task: Task; activity: Activity }> {
+  // ── task mutations (actor = authenticated user) ──────────────────────────────
+  async createTask(input: CreateTaskInput, actor: string): Promise<{ task: Task; activity: Activity }> {
     const row = await prisma.task.create({
       data: {
         id: newId("t"),
@@ -125,14 +147,14 @@ const repo = {
         desc: "",
         subs: "[]",
         tags: JSON.stringify(input.tags),
-        assignee: ACTOR,
+        assignee: actor,
       },
     });
-    const activity = await log("add", { title: row.title });
+    const activity = await log(actor, "add", { title: row.title });
     return { task: toTask(row), activity };
   },
 
-  async editTask(id: string, input: EditTaskInput): Promise<{ task: Task; activity: Activity } | null> {
+  async editTask(id: string, input: EditTaskInput, actor: string): Promise<{ task: Task; activity: Activity } | null> {
     if (!(await prisma.task.findUnique({ where: { id } }))) return null;
     const row = await prisma.task.update({
       where: { id },
@@ -146,14 +168,14 @@ const repo = {
         tags: JSON.stringify(input.tags),
       },
     });
-    const activity = await log("edit", { title: row.title });
+    const activity = await log(actor, "edit", { title: row.title });
     return { task: toTask(row), activity };
   },
 
-  async setStatus(id: string, status: Status): Promise<{ task: Task; activity: Activity } | null> {
+  async setStatus(id: string, status: Status, actor: string): Promise<{ task: Task; activity: Activity } | null> {
     if (!(await prisma.task.findUnique({ where: { id } }))) return null;
     const row = await prisma.task.update({ where: { id }, data: { status } });
-    const activity = await log("status", { title: row.title, status });
+    const activity = await log(actor, "status", { title: row.title, status });
     return { task: toTask(row), activity };
   },
 
@@ -185,78 +207,84 @@ const repo = {
     return { task: toTask(row) };
   },
 
-  async setAssignee(id: string, userId: string): Promise<{ task: Task; activity: Activity } | null> {
+  async setAssignee(id: string, userId: string, actor: string): Promise<{ task: Task; activity: Activity } | null> {
     if (!(await prisma.task.findUnique({ where: { id } }))) return null;
     const u = await prisma.user.findUnique({ where: { id: userId } });
     const row = await prisma.task.update({ where: { id }, data: { assignee: userId } });
-    const activity = await log("assign", { title: row.title, name: u ? u.name : "" });
+    const activity = await log(actor, "assign", { title: row.title, name: u ? u.name : "" });
     return { task: toTask(row), activity };
   },
 
-  async logTime(id: string, minutes: number): Promise<{ task: Task; activity: Activity } | null> {
+  async logTime(id: string, minutes: number, actor: string): Promise<{ task: Task; activity: Activity } | null> {
     const t = await prisma.task.findUnique({ where: { id } });
     if (!t) return null;
     const spent = Math.round((t.spent + minutes / 60) * 100) / 100;
     const row = await prisma.task.update({ where: { id }, data: { spent } });
     const amount = minutes >= 60 ? minutes / 60 + "h" : minutes + "m";
-    const activity = await log("time", { title: row.title, amount });
+    const activity = await log(actor, "time", { title: row.title, amount });
     return { task: toTask(row), activity };
   },
 
-  async deleteTask(id: string): Promise<{ removedId: string; activity: Activity } | null> {
+  async deleteTask(id: string, actor: string): Promise<{ removedId: string; activity: Activity } | null> {
     const t = await prisma.task.findUnique({ where: { id } });
     if (!t) return null;
     await prisma.task.delete({ where: { id } });
-    const activity = await log("del", { title: t.title });
+    const activity = await log(actor, "del", { title: t.title });
     return { removedId: id, activity };
   },
 
   // ── user mutations ─────────────────────────────────────────────────────────
-  async inviteUser(input: InviteInput): Promise<{ user: User; activity: Activity }> {
+  async inviteUser(input: InviteInput, actor: string): Promise<{ user: User; activity: Activity }> {
+    // Invited users get a random (unusable) password and status "invited", so
+    // they cannot be logged into until a real activation/set-password flow runs.
     const row = await prisma.user.create({
       data: {
         id: newId("u"),
         ord: await nextOrd("user"),
         name: input.name.trim(),
-        email: input.email.trim() || "—",
+        email: input.email.trim() || newId("invite") + "@acme.co",
+        password: await hashPassword(newId("pw") + newId("pw")),
         role: input.role,
         status: "invited",
         me: false,
       },
     });
-    const activity = await log("invite", { name: row.name });
-    return { user: toUser(row), activity };
+    const activity = await log(actor, "invite", { name: row.name });
+    return { user: toUser(row, actor), activity };
   },
 
-  async setRole(id: string, role: Role): Promise<{ user: User; activity: Activity } | null> {
+  async setRole(id: string, role: Role, actor: string): Promise<{ user: User; activity: Activity } | null> {
     if (!(await prisma.user.findUnique({ where: { id } }))) return null;
     const row = await prisma.user.update({ where: { id }, data: { role } });
-    const activity = await log("role", { name: row.name, role });
-    return { user: toUser(row), activity };
+    const activity = await log(actor, "role", { name: row.name, role });
+    return { user: toUser(row, actor), activity };
   },
 
-  async setUserStatus(id: string, status: UserStatus): Promise<{ user: User } | null> {
+  async setUserStatus(id: string, status: UserStatus, actor: string): Promise<{ user: User } | null> {
     if (!(await prisma.user.findUnique({ where: { id } }))) return null;
     const row = await prisma.user.update({ where: { id }, data: { status } });
-    return { user: toUser(row) };
+    return { user: toUser(row, actor) };
   },
 
-  async resetPassword(id: string): Promise<{ activity: Activity; user: User } | null> {
+  async resetPassword(id: string, actor: string): Promise<{ activity: Activity; user: User } | null> {
     const u = await prisma.user.findUnique({ where: { id } });
     if (!u) return null;
-    const activity = await log("reset", { name: u.name });
-    return { activity, user: toUser(u) };
+    // Actually invalidate the current credential (set a fresh random hash). In a
+    // real deployment this pairs with a one-time reset link delivered to the user.
+    await prisma.user.update({ where: { id }, data: { password: await hashPassword(newId("pw") + newId("pw")) } });
+    const activity = await log(actor, "reset", { name: u.name });
+    return { activity, user: toUser(u, actor) };
   },
 
-  async removeUser(id: string): Promise<{ removedId: string; reassigned: Task[] } | null> {
+  async removeUser(id: string, actor: string): Promise<{ removedId: string; reassigned: Task[] } | null> {
     const u = await prisma.user.findUnique({ where: { id } });
-    if (!u || u.me) return null;
+    if (!u || u.id === actor) return null; // can't remove yourself
     const affected = await prisma.task.findMany({ where: { assignee: id } });
     await prisma.$transaction([
-      prisma.task.updateMany({ where: { assignee: id }, data: { assignee: ACTOR } }),
+      prisma.task.updateMany({ where: { assignee: id }, data: { assignee: actor } }),
       prisma.user.delete({ where: { id } }),
     ]);
-    const reassigned = affected.map((r) => ({ ...toTask(r), assignee: ACTOR }));
+    const reassigned = affected.map((r) => ({ ...toTask(r), assignee: actor }));
     return { removedId: id, reassigned };
   },
 };

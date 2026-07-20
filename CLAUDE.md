@@ -44,10 +44,11 @@ There is no unit-test suite yet; verify by `npm run typecheck` + `npm run build`
 prisma/           schema.prisma (SQLite dev → Postgres prod), seed.ts
 src/
   app/            layout (next/font: Archivo + Noto Sans Thai), page (responsive shell switch),
-                  modernist.css (design system), globals.css, api/ (backend route handlers)
+                  modernist.css (design system), globals.css, api/ (route handlers, incl. api/auth/*)
+  proxy.ts        Edge middleware — 401s every /api/* except /api/auth/* without a session
   lib/            types, seed, dates, domain (quad/dueInfo/decorate), selectors, i18n, api (client)
-  server/         db.ts (Prisma client singleton), store.ts — Prisma-backed repository (the backend)
-  store/          planner.tsx (context + reducer + async actions), hooks, useIsMobile
+  server/         db.ts (Prisma singleton), store.ts (repository), auth.ts (bcrypt), session.ts (jose/JWS)
+  store/          planner.tsx (context + reducer + async actions), hooks, useIsMobile, useLoginForm
   components/     ui, forms, TaskDetailBody (shared); desktop/ and mobile/ (the two shells)
 ```
 
@@ -63,6 +64,7 @@ Desktop and mobile are **separate shells** chosen by viewport (breakpoint 900px 
 - **Fixed clock.** The app is calibrated to `TODAY = 2026-07-12` (`src/lib/dates.ts`). The seeded due dates, calendar (July 2026), and timeline depend on it — don't change it casually.
 - **Keep the storage engine swappable.** The UI must not import `src/server/store.ts` or `src/server/db.ts` directly — only through `src/lib/api.ts`. `store.ts` is a Prisma-backed repository; its method signatures + return DTOs are the contract. Prisma stays server-only (never import it in a `"use client"` file). To move to Postgres: switch the `datasource` provider in `prisma/schema.prisma` and point `DATABASE_URL` at Postgres.
 - Mutations return the authoritative entity (+ any activity entry); the client applies an optimistic update then reconciles with the response.
+- **Auth.** Every `/api/*` route is guarded by `src/proxy.ts` (valid session cookie required; `/api/auth/*` excluded). Route handlers derive the actor with `getSessionUserId(req)` and pass it to the repository — the actor/`me` come from the session, **never** the request body. `session.ts` is jose-only (Edge-safe, imported by the proxy); `auth.ts` (bcrypt) is Node-only — never import it from the proxy. Never return the password hash in a DTO (`toUser` omits it). `AUTH_SECRET` (≥16 chars) is required at runtime.
 
 ## Claude Code extensions in this repo
 

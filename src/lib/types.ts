@@ -150,6 +150,11 @@ export interface InviteInput {
   role: Role;
 }
 
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
 export type ViewKey =
   | "dashboard"
   | "list"

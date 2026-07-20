@@ -7,11 +7,14 @@ A bilingual (ไทย / English) project & task-management app, built with **Ne
 ## Getting started
 
 ```bash
-npm install        # also runs `prisma generate`
-npm run db:push    # create the SQLite schema (prisma/dev.db)
-npm run db:seed    # load the seed data
-npm run dev        # http://localhost:3000
+cp .env.example .env   # then set AUTH_SECRET (e.g. `openssl rand -hex 32`)
+npm install            # also runs `prisma generate`
+npm run db:push        # create the SQLite schema (prisma/dev.db)
+npm run db:seed        # load the seed data
+npm run dev            # http://localhost:3000
 ```
+
+Sign in with a seeded account — e.g. **`thanakorn@acme.co` / `password`** (all demo users share the password `password`).
 
 ```bash
 npm run build      # production build
@@ -21,7 +24,11 @@ npm run db:seed    # re-seed (wipes + reloads the demo data)
 npm run db:studio  # browse the DB in Prisma Studio
 ```
 
-Sign in with the pre-filled credentials (any value works — auth is mocked). The app is calibrated to a fixed "today" of **2026-07-12** so the seeded due dates, calendar and timeline read exactly as designed.
+The app is calibrated to a fixed "today" of **2026-07-12** so the seeded due dates, calendar and timeline read exactly as designed.
+
+### Authentication
+
+Real credential auth: bcrypt-hashed passwords, a signed (JWS/HS256) httpOnly session cookie via [jose](https://github.com/panva/jose), and Edge middleware (`src/proxy.ts`) that 401s every `/api/*` request without a valid session — so the backend is genuinely protected, not just the UI. The activity **actor** and the "me" highlight come from the verified session, never the request body, so whoever signs in becomes the current user. Set a strong `AUTH_SECRET` (≥16 chars) in production.
 
 ## What's inside
 
@@ -91,10 +98,11 @@ The UI never talks to the database directly — it goes through `src/lib/api.ts`
 The image is self-contained — it bakes a seeded SQLite database in as a template and restores it into a data volume on first boot, so it runs with zero setup:
 
 ```bash
-docker compose up --build          # → http://localhost:3000  (data persists in a volume)
+echo "AUTH_SECRET=$(openssl rand -hex 32)" > .env   # required — the app fails closed without it
+docker compose up --build                            # → http://localhost:3000  (data persists in a volume)
 # or without compose:
 docker build -t innovera-plan .
-docker run -p 3000:3000 innovera-plan
+docker run -p 3000:3000 -e AUTH_SECRET=$(openssl rand -hex 32) innovera-plan
 ```
 
 Built as a Next.js **standalone** server (multi-stage build, non-root user, ~640 MB). To run against **Postgres** instead of the baked SQLite, switch the datasource provider in `prisma/schema.prisma`, point `DATABASE_URL` at Postgres, and run `prisma migrate deploy` + `npm run db:seed` in your pipeline — see the commented service in `docker-compose.yml`.
@@ -105,5 +113,5 @@ Styling follows **Modernist** (see `project/_ds/…/readme.md`): flat, Archivo t
 
 ## Notes
 
-- Auth, and the mobile "Time summary" week log, are mocked/demo state.
+- The mobile "Time summary" week log is demo state (client-side aggregate).
 - The `project/` folder is the original Claude Design export, kept for reference.

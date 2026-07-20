@@ -145,6 +145,8 @@ export interface Dict {
   lg_pass: string;
   lg_signin: string;
   lg_tagline: string;
+  lg_error: string;
+  logout: string;
 
   activity_h: string;
   activity_sub: string;
@@ -333,6 +335,8 @@ export const th: Dict = {
   lg_pass: "รหัสผ่าน",
   lg_signin: "เข้าสู่ระบบ",
   lg_tagline: "วางแผน · ติดตาม · ส่งมอบ",
+  lg_error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+  logout: "ออกจากระบบ",
 
   activity_h: "บันทึกกิจกรรม",
   activity_sub: "กิจกรรมล่าสุดทั้งหมด",
@@ -518,6 +522,8 @@ export const en: Dict = {
   lg_pass: "Password",
   lg_signin: "Sign in",
   lg_tagline: "Plan · Track · Ship",
+  lg_error: "Invalid email or password",
+  logout: "Sign out",
 
   activity_h: "Activity",
   activity_sub: "Recent activity across the workspace",

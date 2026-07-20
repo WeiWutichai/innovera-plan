@@ -9,6 +9,10 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: "file:/app/data/dev.db"
+      # Required — the app refuses to start without a real secret. Provide it via
+      # the host env or a .env file next to this compose file:
+      #   echo "AUTH_SECRET=$(openssl rand -hex 32)" > .env  &&  docker compose up
+      AUTH_SECRET: "${AUTH_SECRET:?set AUTH_SECRET (e.g. openssl rand -hex 32)}"
     volumes:
       - innovera-data:/app/data
     restart: unless-stopped

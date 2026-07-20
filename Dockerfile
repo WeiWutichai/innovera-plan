@@ -36,6 +36,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV DATABASE_URL="file:/app/data/dev.db"
+# AUTH_SECRET is intentionally NOT baked in — it must be supplied at runtime
+# (e.g. `docker run -e AUTH_SECRET=$(openssl rand -hex 32) ...`). The app fails
+# closed (throws) if it is missing or a known placeholder, so tokens can never
+# be signed with a public key.
 
 # Next standalone server (includes a traced node_modules)
 COPY --from=builder --chown=node:node /app/.next/standalone ./

@@ -2,6 +2,7 @@
 // Run with: npm run db:seed  (or npm run db:reset to wipe + reseed)
 
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import {
   SEED_PROJECTS,
   SEED_TAGS,
@@ -11,6 +12,9 @@ import {
 } from "../src/lib/seed";
 
 const prisma = new PrismaClient();
+
+// All demo users share this password (matches the login screen's prefill).
+const DEMO_PASSWORD = "password";
 
 async function main() {
   // wipe (FK-safe order: tasks reference projects + users)
@@ -26,9 +30,10 @@ async function main() {
     });
   }
 
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
   for (const [i, u] of SEED_USERS.entries()) {
     await prisma.user.create({
-      data: { id: u.id, ord: i, name: u.name, email: u.email, role: u.role, status: u.status, me: !!u.me },
+      data: { id: u.id, ord: i, name: u.name, email: u.email, password: passwordHash, role: u.role, status: u.status, me: !!u.me },
     });
   }
 

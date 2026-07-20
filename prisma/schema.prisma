@@ -28,14 +28,15 @@ model Project {
 }
 
 model User {
-  id     String  @id
-  ord    Int
-  name   String
-  email  String
-  role   String
-  status String
-  me     Boolean @default(false)
-  tasks  Task[]  @relation("TaskAssignee")
+  id       String  @id
+  ord      Int
+  name     String
+  email    String  @unique
+  password String // bcrypt hash
+  role     String
+  status   String
+  me       Boolean @default(false)
+  tasks    Task[]  @relation("TaskAssignee")
 }
 
 model Tag {
