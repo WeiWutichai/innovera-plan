@@ -4,7 +4,7 @@ import type { Status } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 /**
  * PATCH /api/tasks/:id — one discriminated task action. Keeping activity
@@ -12,7 +12,7 @@ type Ctx = { params: { id: string } };
  */
 export async function PATCH(req: Request, { params }: Ctx) {
   const store = getStore();
-  const { id } = params;
+  const { id } = await params;
   const body = await req.json();
   const action = body?.action as string;
 
@@ -49,7 +49,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
 // DELETE /api/tasks/:id
 export async function DELETE(_req: Request, { params }: Ctx) {
-  const result = await getStore().deleteTask(params.id);
+  const { id } = await params;
+  const result = await getStore().deleteTask(id);
   if (!result) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json(result);
 }

@@ -4,12 +4,12 @@ import type { Role, UserStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 // PATCH /api/users/:id — role / status / password-reset.
 export async function PATCH(req: Request, { params }: Ctx) {
   const store = getStore();
-  const { id } = params;
+  const { id } = await params;
   const body = await req.json();
   const action = body?.action as string;
 
@@ -34,7 +34,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
 // DELETE /api/users/:id — remove a member; their tasks reassign to the owner.
 export async function DELETE(_req: Request, { params }: Ctx) {
-  const result = await getStore().removeUser(params.id);
+  const { id } = await params;
+  const result = await getStore().removeUser(id);
   if (!result) return NextResponse.json({ error: "cannot remove" }, { status: 400 });
   return NextResponse.json(result);
 }
