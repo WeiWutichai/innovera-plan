@@ -1,0 +1,72 @@
+/* App chrome that sits on top of the Modernist design system. */
+
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* themed scrollbars (desktop) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-400) transparent;
+}
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-400);
+}
+
+a {
+  color: var(--color-accent);
+}
+a:hover {
+  color: var(--color-accent-600);
+}
+
+/* lucide-react default sizing / stroke */
+svg.lucide {
+  stroke-width: 2;
+}
+
+/* Reset the button styling the prototype relied on the browser NOT applying */
+button {
+  font-family: inherit;
+}
+
+/* animations from the prototypes */
+@keyframes drawerIn {
+  from {
+    transform: translateX(24px);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* hide scrollbars inside the mobile shell */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Desktop / mobile shells are chosen in JS by viewport; this is a
+   belt-and-braces fallback if JS-detected width lags on first paint. */

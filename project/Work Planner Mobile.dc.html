@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/modernist-13acec10-6fb1-480e-aa75-a646bb57eb9f/styles.css">
+  <script src="_ds/modernist-13acec10-6fb1-480e-aa75-a646bb57eb9f/_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    html,body{height:100%}
+    body{margin:0;background:var(--color-neutral-200);display:grid;place-items:center}
+    *{scrollbar-width:none}
+    ::-webkit-scrollbar{display:none}
+    [data-lucide]{width:22px;height:22px;stroke-width:2}
+    a{color:var(--color-accent)}a:hover{color:var(--color-accent-600)}
+    @keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  </style>
+</helmet>
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" width="402" height="874" hint-size="402px,874px">
+  <div style="height:100%;display:flex;flex-direction:column;background:var(--color-bg);font-family:var(--font-body);color:var(--color-text);position:relative;overflow:hidden">
+
+    <header style="flex:none;padding:56px 18px 12px;border-bottom:2px solid var(--color-divider);display:flex;align-items:flex-end;gap:12px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--color-neutral-600)">INNOVERA · {{ todayShort }}</div>
+        <h1 style="font-size:26px;margin:2px 0 0;line-height:1.1">{{ viewTitle }}</h1>
+      </div>
+      <div style="display:flex;flex:none;border:1px solid var(--color-divider);overflow:hidden;height:42px">
+        <button onClick="{{ setTH }}" style="padding:0 10px;border:0;cursor:pointer;font:700 12px var(--font-heading);background:{{ thBg }};color:{{ thColor }}">TH</button>
+        <button onClick="{{ setEN }}" style="padding:0 10px;border:0;border-left:1px solid var(--color-divider);cursor:pointer;font:700 12px var(--font-heading);background:{{ enBg }};color:{{ enColor }}">EN</button>
+      </div>
+      <button onClick="{{ toggleNotif }}" style="position:relative;flex:none;width:42px;height:42px;border:1px solid var(--color-divider);background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--color-text)">
+        <i data-lucide="bell"></i>
+        <sc-if value="{{ hasOverdue }}"><span style="position:absolute;top:-6px;right:-6px;min-width:19px;height:19px;padding:0 5px;background:var(--color-accent);color:var(--color-bg);font:800 11px/19px var(--font-heading);text-align:center;border-radius:10px;border:2px solid var(--color-bg)">{{ overdueCount }}</span></sc-if>
+      </button>
+    </header>
+
+    <main style="flex:1;overflow:auto;padding:16px 16px 96px">
+
+      <sc-if value="{{ showTagBar }}">
+        <div style="display:flex;flex-direction:column;gap:8px;margin:0 -16px 16px;padding:0 16px">
+          <div style="display:flex;align-items:center;gap:6px;overflow-x:auto;padding-bottom:2px">
+            <sc-for list="{{ tagBar }}" as="tg" hint-placeholder-count="6"><button onClick="{{ tg.toggle }}" style="flex:none;padding:6px 12px;border:1px solid {{ tg.border }};background:{{ tg.bg }};color:{{ tg.color }};cursor:pointer;font:600 12px var(--font-body);white-space:nowrap">#{{ tg.label }}</button></sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;overflow-x:auto;padding-bottom:2px">
+            <sc-for list="{{ assigneeBar }}" as="a" hint-placeholder-count="4"><button onClick="{{ a.toggle }}" style="flex:none;display:inline-flex;align-items:center;gap:6px;padding:4px 11px 4px 4px;border:1px solid {{ a.border }};background:{{ a.bg }};color:{{ a.color }};cursor:pointer;font:600 12px var(--font-body);white-space:nowrap"><span style="width:20px;height:20px;flex:none;background:{{ a.avatarBg }};color:var(--color-bg);display:grid;place-items:center;font:800 10px var(--font-heading)">{{ a.initials }}</span>{{ a.name }}</button></sc-for>
+            <sc-if value="{{ anyFilterActive }}"><button onClick="{{ clearFilters }}" style="flex:none;padding:6px 10px;border:0;background:transparent;color:var(--color-accent);cursor:pointer;font:600 12px var(--font-body);white-space:nowrap">ล้าง</button></sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+        <sc-if value="{{ hasOverdue }}">
+          <div onClick="{{ toggleNotif }}" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--color-accent-100);border-left:3px solid var(--color-accent);margin-bottom:16px;cursor:pointer">
+            <i data-lucide="alert-triangle" style="color:var(--color-accent)"></i>
+            <span style="font-size:13px;font-weight:600;flex:1">{{ L.overdue_title }}: {{ overdueCount }}{{ L.unit_task }}</span>
+            <i data-lucide="chevron-right" style="color:var(--color-accent)"></i>
+          </div>
+        </sc-if>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px">
+          <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+            <div style="border:1px solid var(--color-divider);background:var(--color-surface);padding:13px 14px">
+              <div style="font-family:var(--font-heading);font-weight:800;font-size:30px;line-height:1;color:{{ s.color }}">{{ s.value }}</div>
+              <div style="font-size:10.5px;color:var(--color-neutral-700);margin-top:6px;text-transform:uppercase;letter-spacing:0.05em">{{ s.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><i data-lucide="target" style="color:var(--color-accent);width:18px;height:18px"></i><h3 style="margin:0;font-size:16px">{{ L.focus_today }}</h3></div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:22px">
+          <sc-for list="{{ todayFocus }}" as="t" hint-placeholder-count="3">
+            <div onClick="{{ t.open }}" style="display:flex;align-items:center;gap:11px;padding:12px 13px;border:1px solid var(--color-divider);background:var(--color-bg);cursor:pointer">
+              <button onClick="{{ t.toggleDone }}" style="width:22px;height:22px;flex:none;border:1.5px solid {{ t.checkBorder }};background:{{ t.checkBg }};cursor:pointer;display:grid;place-items:center;padding:0"><sc-if value="{{ t.done }}"><i data-lucide="check" style="width:14px;height:14px;color:var(--color-bg)"></i></sc-if></button>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:14px;font-weight:600;color:{{ t.titleColor }};text-decoration:{{ t.strike }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.title }}</div>
+                <div style="display:flex;align-items:center;gap:7px;margin-top:3px"><span style="width:8px;height:8px;flex:none;background:{{ t.projDot }}"></span><span style="font-size:12px;color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.projectName }}</span></div>
+              </div>
+              <span class="tag {{ t.dueClass }}" style="flex:none">{{ t.dueLabel }}</span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noFocus }}"><div style="padding:18px;border:1px dashed var(--color-divider);font-size:13px;color:var(--color-neutral-600);text-align:center">{{ L.no_focus }}</div></sc-if>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><i data-lucide="bar-chart-3" style="color:var(--color-accent);width:18px;height:18px"></i><h3 style="margin:0;font-size:16px">{{ L.proj_progress }}</h3></div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <sc-for list="{{ projectProgress }}" as="p" hint-placeholder-count="4">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:9px;height:9px;flex:none;background:{{ p.dot }}"></span><span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.name }}</span><span style="font-size:12px;color:var(--color-neutral-600)">{{ p.pctLabel }}</span></div>
+              <div style="height:8px;background:var(--color-neutral-200)"><div style="height:100%;width:{{ p.pct }}%;background:var(--color-accent)"></div></div>
+              <div style="font-size:11px;color:var(--color-neutral-600);margin-top:5px">{{ p.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:22px">
+          <sc-for list="{{ listGroups }}" as="g" hint-placeholder-count="4">
+            <div>
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
+                <h3 style="font-size:13px;margin:0;color:{{ g.color }};text-transform:uppercase;letter-spacing:0.05em">{{ g.label }}</h3>
+                <span style="font-size:12px;color:var(--color-neutral-600)">{{ g.count }}</span>
+                <div style="flex:1;height:2px;background:var(--color-divider)"></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <sc-for list="{{ g.tasks }}" as="t" hint-placeholder-count="3">
+                  <div onClick="{{ t.open }}" style="display:flex;align-items:center;gap:11px;padding:12px 13px;border:1px solid var(--color-divider);background:var(--color-bg);cursor:pointer">
+                    <button onClick="{{ t.toggleDone }}" style="width:22px;height:22px;flex:none;border:1.5px solid {{ t.checkBorder }};background:{{ t.checkBg }};cursor:pointer;display:grid;place-items:center;padding:0"><sc-if value="{{ t.done }}"><i data-lucide="check" style="width:14px;height:14px;color:var(--color-bg)"></i></sc-if></button>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:14px;font-weight:600;color:{{ t.titleColor }};text-decoration:{{ t.strike }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.title }}</div>
+                      <div style="display:flex;align-items:center;gap:7px;margin-top:3px"><span style="width:8px;height:8px;flex:none;background:{{ t.projDot }}"></span><span style="font-size:12px;color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.projectName }}</span><sc-if value="{{ t.hasSubs }}"><span style="font-size:12px;color:var(--color-neutral-600);flex:none">· ☑{{ t.subLabel }}</span></sc-if><sc-for list="{{ t.tagChips }}" as="tg" hint-placeholder-count="0"><span class="tag tag-neutral" style="font-size:10px;padding:1px 6px">#{{ tg.label }}</span></sc-for></div>
+                    </div>
+                    <span class="tag {{ t.dueClass }}" style="flex:none">{{ t.dueLabel }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isKanban }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;margin:0 -16px;padding-left:16px;padding-right:16px">
+          <sc-for list="{{ kanbanCols }}" as="c" hint-placeholder-count="5">
+            <div onDragOver="{{ c.over }}" onDrop="{{ c.drop }}" style="width:240px;flex:none;background:{{ c.colBg }};border:1px solid {{ c.border }};display:flex;flex-direction:column">
+              <div style="display:flex;align-items:center;gap:8px;padding:11px 13px;border-bottom:2px solid var(--color-divider)">
+                <span style="width:9px;height:9px;background:{{ c.dot }}"></span>
+                <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">{{ c.label }}</span>
+                <span style="margin-left:auto;font-size:12px;color:var(--color-neutral-600)">{{ c.count }}</span>
+              </div>
+              <div style="padding:10px;display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ c.tasks }}" as="t" hint-placeholder-count="2">
+                  <div draggable="true" onDragStart="{{ t.dragStart }}" onDragEnd="{{ t.dragEnd }}" onClick="{{ t.open }}" style="border:1px solid var(--color-divider);background:var(--color-bg);padding:10px 11px;cursor:grab">
+                    <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center"><span class="tag {{ t.quadClass }}">{{ t.quadLabel }}</span><span class="tag {{ t.dueClass }}" style="margin-left:auto">{{ t.dueLabel }}</span></div>
+                    <div style="font-size:13.5px;font-weight:600;line-height:1.3;margin-bottom:8px">{{ t.title }}</div>
+                    <sc-if value="{{ t.hasTags }}"><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px"><sc-for list="{{ t.tagChips }}" as="tg" hint-placeholder-count="0"><span class="tag tag-neutral" style="font-size:10px;padding:1px 6px">#{{ tg.label }}</span></sc-for></div></sc-if>
+                    <div style="display:flex;align-items:center;gap:7px">
+                      <span style="width:8px;height:8px;flex:none;background:{{ t.projDot }}"></span>
+                      <span style="font-size:11.5px;color:var(--color-neutral-600);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.projectName }}</span>
+                      <button onClick="{{ t.prev }}" style="border:1px solid var(--color-divider);background:transparent;cursor:pointer;width:26px;height:26px;display:grid;place-items:center;padding:0;color:var(--color-text)"><i data-lucide="chevron-left" style="width:15px;height:15px"></i></button>
+                      <button onClick="{{ t.next }}" style="border:1px solid var(--color-divider);background:transparent;cursor:pointer;width:26px;height:26px;display:grid;place-items:center;padding:0;color:var(--color-text)"><i data-lucide="chevron-right" style="width:15px;height:15px"></i></button>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isCal }}" hint-placeholder-val="{{ true }}">
+        <h3 style="margin:0 0 12px;font-size:16px">{{ calTitle }}</h3>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:20px">
+          <sc-for list="{{ weekdays }}" as="w" hint-placeholder-count="7"><div style="text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-neutral-600);padding:4px 0">{{ w }}</div></sc-for>
+          <sc-for list="{{ calDays }}" as="d" hint-placeholder-count="42">
+            <div onClick="{{ d.tap }}" style="aspect-ratio:1;background:{{ d.bg }};border:1px solid var(--color-divider);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer">
+              <span style="font-size:13px;color:{{ d.numColor }};font-weight:{{ d.numWeight }}">{{ d.num }}</span>
+              <sc-if value="{{ d.dot }}"><span style="width:5px;height:5px;background:{{ d.dotColor }}"></span></sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px"><i data-lucide="calendar" style="color:var(--color-accent);width:18px;height:18px"></i><h4 style="margin:0;font-size:15px">{{ calSelLabel }}</h4></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <sc-for list="{{ calSelTasks }}" as="t" hint-placeholder-count="2">
+            <div onClick="{{ t.open }}" style="display:flex;align-items:center;gap:11px;padding:12px 13px;border:1px solid var(--color-divider);background:var(--color-bg);cursor:pointer">
+              <span style="width:8px;height:8px;flex:none;background:{{ t.projDot }}"></span>
+              <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.title }}</div><div style="font-size:12px;color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.projectName }}</div></div>
+              <span class="tag {{ t.quadClass }}" style="flex:none">{{ t.quadLabel }}</span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noCalTasks }}"><div style="padding:16px;border:1px dashed var(--color-divider);font-size:13px;color:var(--color-neutral-600);text-align:center">ไม่มีงานครบกำหนดวันนี้</div></sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isTimeline }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;margin-bottom:8px;padding-left:2px">
+          <sc-for list="{{ months }}" as="m" hint-placeholder-count="8"><div style="flex:none;width:{{ m.w }}%;font-size:9.5px;text-transform:uppercase;color:var(--color-neutral-600);border-left:1px solid var(--color-divider);padding-left:3px">{{ m.label }}</div></sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ ganttRows }}" as="r" hint-placeholder-count="4">
+            <div onClick="{{ r.go }}" style="border:1px solid var(--color-divider);background:var(--color-surface);padding:12px 13px;cursor:pointer">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px"><span style="width:9px;height:9px;flex:none;background:{{ r.dot }}"></span><span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</span><span style="font-size:12px;color:var(--color-neutral-600)">{{ r.pctLabel }}</span></div>
+              <div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:9px">{{ r.rangeLabel }}</div>
+              <div style="position:relative;height:22px;background:var(--color-neutral-200)">
+                <sc-for list="{{ months }}" as="m" hint-placeholder-count="8"><div style="position:absolute;top:0;bottom:0;left:{{ m.left }}%;width:1px;background:var(--color-neutral-300)"></div></sc-for>
+                <div style="position:absolute;top:0;bottom:0;left:{{ r.left }}%;width:{{ r.width }}%;background:var(--color-neutral-400);overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:{{ r.pct }}%;background:var(--color-accent)"></div></div>
+                <div style="position:absolute;top:-3px;bottom:-3px;left:{{ todayLeft }}%;width:2px;background:var(--color-accent)"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:12px;font-size:11px;color:var(--color-neutral-600)"><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:16px;height:8px;background:var(--color-accent)"></span>เสร็จ</span><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:2px;height:12px;background:var(--color-accent)"></span>วันนี้</span></div>
+      </sc-if>
+
+      <sc-if value="{{ isTime }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;gap:8px;margin-bottom:20px">
+          <sc-for list="{{ timeStats }}" as="s" hint-placeholder-count="3">
+            <div style="flex:1;border:1px solid var(--color-divider);background:var(--color-surface);padding:11px 12px">
+              <div style="font-family:var(--font-heading);font-weight:800;font-size:18px;line-height:1.1">{{ s.value }}</div>
+              <div style="font-size:10px;color:var(--color-neutral-700);margin-top:6px;text-transform:uppercase;letter-spacing:0.04em">{{ s.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><i data-lucide="clock" style="color:var(--color-accent);width:18px;height:18px"></i><h3 style="margin:0;font-size:16px">{{ L.time_7d }}</h3></div>
+        <div style="border:1px solid var(--color-divider);background:var(--color-surface);padding:16px 12px 10px;margin-bottom:22px">
+          <div style="display:flex;align-items:flex-end;gap:8px;height:130px">
+            <sc-for list="{{ weekBars }}" as="b" hint-placeholder-count="7">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end">
+                <span style="font-size:10.5px;font-weight:600;color:{{ b.numColor }}">{{ b.hLabel }}</span>
+                <div style="width:100%;height:{{ b.h }}%;min-height:3px;background:{{ b.barColor }}"></div>
+                <span style="font-size:10px;color:var(--color-neutral-600)">{{ b.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size:10.5px;color:var(--color-neutral-600);text-align:right;margin-top:8px">{{ L.unit_note }}</div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><i data-lucide="folder-git-2" style="color:var(--color-accent);width:18px;height:18px"></i><h3 style="margin:0;font-size:16px">{{ L.time_by_proj }}</h3></div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <sc-for list="{{ projEffort }}" as="p" hint-placeholder-count="4">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:9px;height:9px;flex:none;background:{{ p.dot }}"></span><span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.name }}</span><span style="font-size:13px;font-weight:600">{{ p.label }}</span></div>
+              <div style="height:8px;background:var(--color-neutral-200)"><div style="height:100%;width:{{ p.w }}%;background:var(--color-accent)"></div></div>
+              <div style="font-size:11px;color:var(--color-neutral-600);margin-top:5px">{{ p.estLabel }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top:16px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5">{{ L.time_tip }}</div>
+      </sc-if>
+
+      <sc-if value="{{ isMatrix }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ quadrants }}" as="q" hint-placeholder-count="4">
+            <div style="border:1px solid var(--color-divider);border-top:3px solid {{ q.accent }};background:var(--color-surface);padding:13px 14px">
+              <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:4px"><span class="tag {{ q.tagClass }}">{{ q.tag }}</span><h4 style="margin:0;font-size:15px">{{ q.title }}</h4><span style="margin-left:auto;font-size:12px;color:var(--color-neutral-600)">{{ q.count }}</span></div>
+              <div style="font-size:11.5px;color:var(--color-neutral-600);margin-bottom:11px">{{ q.hint }}</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <sc-for list="{{ q.tasks }}" as="t" hint-placeholder-count="2">
+                  <div onClick="{{ t.open }}" style="cursor:pointer;padding:9px 10px;border:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:center;gap:9px">
+                    <span style="width:8px;height:8px;flex:none;background:{{ t.projDot }}"></span>
+                    <span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.title }}</span>
+                    <span class="tag {{ t.dueClass }}">{{ t.dueLabel }}</span>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ q.empty }}"><div style="font-size:12px;color:var(--color-neutral-500);padding:6px 2px">— ไม่มีงาน —</div></sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isTeam }}" hint-placeholder-val="{{ true }}">
+        <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-bottom:16px" onClick="{{ openInvite }}"><i data-lucide="user-plus"></i><span>{{ L.invite }}</span></button>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ teamUsers }}" as="u" hint-placeholder-count="4">
+            <div style="border:1px solid var(--color-divider);background:var(--color-surface);padding:13px;opacity:{{ u.rowOpacity }}">
+              <div style="display:flex;align-items:center;gap:11px;margin-bottom:11px">
+                <span style="width:38px;height:38px;flex:none;background:{{ u.avatarBg }};color:var(--color-bg);display:grid;place-items:center;font:800 14px var(--font-heading)">{{ u.initials }}</span>
+                <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ u.name }}</div><div style="font-size:12px;color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ u.email }}</div></div>
+                <span class="tag {{ u.statusCls }}">{{ u.statusLabel }}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <button class="btn btn-secondary" style="flex:1;justify-content:flex-start" onClick="{{ u.cycleRole }}">{{ u.roleLabel }}</button>
+                <span style="font-size:12px;color:var(--color-neutral-600);white-space:nowrap">{{ u.assigned }}{{ L.unit_task }}</span>
+                <button class="btn btn-ghost" onClick="{{ u.toggleStatus }}">{{ u.toggleLabel }}</button>
+                <sc-if value="{{ u.canRemove }}"><button class="btn btn-icon btn-secondary" onClick="{{ u.remove }}"><i data-lucide="trash-2" style="width:15px;height:15px"></i></button></sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+    </main>
+
+    <button onClick="{{ openAdd }}" style="position:absolute;right:18px;bottom:96px;z-index:20;width:56px;height:56px;background:var(--color-accent);color:var(--color-bg);border:0;box-shadow:var(--shadow-md);cursor:pointer;display:grid;place-items:center"><i data-lucide="plus" style="width:26px;height:26px"></i></button>
+
+    <nav style="flex:none;display:flex;border-top:2px solid var(--color-divider);background:var(--color-surface);padding-bottom:22px">
+      <sc-for list="{{ primaryTabs }}" as="tb" hint-placeholder-count="4">
+        <button onClick="{{ tb.go }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 5px;border:0;background:transparent;cursor:pointer;color:{{ tb.color }}">
+          <i data-lucide="{{ tb.icon }}"></i>
+          <span style="font-size:10.5px;font-weight:600">{{ tb.label }}</span>
+        </button>
+      </sc-for>
+      <button onClick="{{ openMore }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 5px;border:0;background:transparent;cursor:pointer;color:{{ moreColor }}">
+        <i data-lucide="ellipsis"></i>
+        <span style="font-size:10.5px;font-weight:600">{{ moreLabel }}</span>
+      </button>
+    </nav>
+
+    <sc-if value="{{ showMore }}">
+      <div onClick="{{ closeMore }}" style="position:absolute;inset:0;z-index:46;background:color-mix(in srgb,var(--color-neutral-900) 45%,transparent)"></div>
+      <div style="position:absolute;left:0;right:0;bottom:0;z-index:47;background:var(--color-surface);border-top:2px solid var(--color-divider);animation:sheetUp .22s ease;padding:14px 14px 34px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--color-divider);border:1px solid var(--color-divider)">
+          <sc-for list="{{ moreTabs }}" as="tb" hint-placeholder-count="4">
+            <button onClick="{{ tb.go }}" style="display:flex;align-items:center;gap:11px;padding:15px 16px;border:0;background:var(--color-bg);cursor:pointer;color:{{ tb.color }};text-align:left;font:600 15px var(--font-body)">
+              <i data-lucide="{{ tb.icon }}"></i><span>{{ tb.label }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showNotif }}">
+      <div onClick="{{ closeNotif }}" style="position:absolute;inset:0;z-index:40;background:color-mix(in srgb,var(--color-neutral-900) 45%,transparent)"></div>
+      <div style="position:absolute;left:0;right:0;bottom:0;z-index:41;background:var(--color-bg);border-top:2px solid var(--color-divider);max-height:70%;display:flex;flex-direction:column;animation:sheetUp .22s ease;padding-bottom:22px">
+        <div style="padding:14px 16px;border-bottom:2px solid var(--color-divider);display:flex;align-items:center;gap:9px"><i data-lucide="alert-triangle" style="color:var(--color-accent)"></i><span style="font:600 15px var(--font-heading)">{{ L.overdue_title }}</span><span style="margin-left:auto;font-size:12px;color:var(--color-neutral-600)">{{ overdueCount }}{{ L.unit_task }}</span><button onClick="{{ closeNotif }}" style="border:0;background:transparent;cursor:pointer;color:var(--color-neutral-700);display:grid;place-items:center"><i data-lucide="x"></i></button></div>
+        <div style="overflow:auto">
+          <sc-for list="{{ overdueTasks }}" as="t" hint-placeholder-count="2">
+            <div onClick="{{ t.open }}" style="padding:13px 16px;border-bottom:1px solid var(--color-divider);cursor:pointer;display:flex;align-items:center;gap:11px">
+              <span style="width:8px;height:8px;flex:none;background:{{ t.projDot }}"></span>
+              <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.title }}</div><div style="font-size:11px;color:var(--color-neutral-600)">{{ t.projectName }}</div></div>
+              <span class="tag tag-accent">{{ t.dueLabel }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ selOpen }}">
+      <div style="position:absolute;inset:0;z-index:44;background:var(--color-bg);display:flex;flex-direction:column;animation:sheetUp .22s ease">
+        <div style="flex:none;padding:52px 16px 12px;border-bottom:2px solid var(--color-divider);display:flex;align-items:center;gap:10px">
+          <span class="tag {{ sel.quadClass }}">{{ sel.quadLabel }}</span>
+          <span style="font-size:12px;color:var(--color-neutral-600)">{{ sel.statusTh }}</span>
+          <button onClick="{{ sel.edit }}" class="btn btn-secondary btn-icon" style="margin-left:auto"><i data-lucide="pencil"></i></button>
+          <button onClick="{{ sel.del }}" class="btn btn-secondary btn-icon"><i data-lucide="trash-2"></i></button>
+          <button onClick="{{ closeTask }}" class="btn btn-secondary btn-icon"><i data-lucide="x"></i></button>
+        </div>
+        <div style="flex:1;overflow:auto;padding:18px 16px 30px">
+          <h2 style="font-size:21px;margin:0 0 12px;line-height:1.25">{{ sel.title }}</h2>
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:20px"><span style="width:10px;height:10px;flex:none;background:{{ sel.projDot }}"></span><span style="font-size:13px;color:var(--color-neutral-700)">{{ sel.projectName }}</span><span class="tag {{ sel.dueClass }}" style="margin-left:auto">{{ sel.dueLabel }}</span></div>
+
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-neutral-600);margin-bottom:7px">{{ L.assign_to }}</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px">
+            <span style="width:30px;height:30px;flex:none;background:{{ sel.assigneeBg }};color:var(--color-bg);display:grid;place-items:center;font:800 12px var(--font-heading)">{{ sel.assigneeInitials }}</span>
+            <span style="flex:1;font-size:14px">{{ sel.assigneeName }}</span>
+            <button class="btn btn-secondary" onClick="{{ sel.cycleAssignee }}"><i data-lucide="repeat" style="width:14px;height:14px"></i><span>{{ L.change }}</span></button>
+          </div>
+
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-neutral-600);margin-bottom:7px">{{ L.status }}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:22px">
+            <sc-for list="{{ sel.statuses }}" as="s" hint-placeholder-count="5"><button onClick="{{ s.go }}" style="padding:7px 12px;border:1px solid {{ s.border }};background:{{ s.bg }};color:{{ s.color }};cursor:pointer;font:600 12px var(--font-body)">{{ s.label }}</button></sc-for>
+          </div>
+
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-neutral-600);margin-bottom:7px">ป้ายกำกับ</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:22px"><sc-for list="{{ sel.tagOptions }}" as="tg" hint-placeholder-count="6"><button onClick="{{ tg.toggle }}" style="padding:6px 11px;border:1px solid {{ tg.border }};background:{{ tg.bg }};color:{{ tg.color }};cursor:pointer;font:600 11.5px var(--font-body)">#{{ tg.label }}</button></sc-for></div>
+
+          <sc-if value="{{ sel.desc }}">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-neutral-600);margin-bottom:6px">{{ L.detail }}</div>
+            <p style="font-size:14px;color:var(--color-neutral-800);margin:0 0 22px;line-height:1.65">{{ sel.desc }}</p>
+          </sc-if>
+
+          <div style="border:1px solid var(--color-divider);padding:14px;margin-bottom:22px;background:var(--color-surface)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><i data-lucide="clock" style="width:18px;height:18px"></i><span style="font-size:13px;font-weight:600">{{ L.time_used }}</span><span style="margin-left:auto;font-size:13px;font-weight:600">{{ sel.spentLabel }} <span style="color:var(--color-neutral-600);font-weight:400">/ {{ sel.estLabel }}</span></span></div>
+            <div style="height:8px;background:var(--color-neutral-200);margin-bottom:11px"><div style="height:100%;width:{{ sel.timePct }}%;background:{{ sel.timeColor }}"></div></div>
+            <div style="display:flex;gap:6px"><button class="btn btn-secondary" onClick="{{ sel.log15 }}">+15น</button><button class="btn btn-secondary" onClick="{{ sel.log60 }}">+1ชม</button><button class="btn btn-secondary" onClick="{{ sel.log120 }}">+2ชม</button></div>
+          </div>
+
+          <sc-if value="{{ sel.hasSubs }}">
+            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px"><span style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-neutral-600)">{{ L.subtasks }}</span><span style="font-size:12px;color:var(--color-neutral-600)">{{ sel.subLabel }}</span></div>
+            <div style="height:6px;background:var(--color-neutral-200);margin-bottom:12px"><div style="height:100%;width:{{ sel.pct }}%;background:var(--color-accent)"></div></div>
+            <div style="display:flex;flex-direction:column;gap:1px;margin-bottom:22px">
+              <sc-for list="{{ sel.subs }}" as="st" hint-placeholder-count="3">
+                <div onClick="{{ st.toggle }}" style="display:flex;align-items:center;gap:11px;padding:9px 6px;cursor:pointer;font-size:14px"><span style="width:20px;height:20px;flex:none;border:1.5px solid {{ st.border }};background:{{ st.bg }};display:grid;place-items:center"><sc-if value="{{ st.done }}"><i data-lucide="check" style="width:13px;height:13px;color:var(--color-bg)"></i></sc-if></span><span style="text-decoration:{{ st.strike }};color:{{ st.color }}">{{ st.t }}</span></div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <div style="border:2px solid var(--color-divider)">
+            <div style="background:var(--color-neutral-900);color:var(--color-neutral-100);padding:11px 14px;display:flex;align-items:center;gap:9px"><i data-lucide="folder-git-2" style="width:18px;height:18px"></i><span style="font-size:13px;font-weight:600;font-family:var(--font-heading)">{{ L.proj_info }}</span></div>
+            <div style="padding:15px">
+              <div style="font-size:15px;font-weight:600;margin-bottom:12px">{{ sel.projectName }}</div>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-neutral-600);margin-bottom:7px">Tech stack</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px"><sc-for list="{{ sel.stack }}" as="tech" hint-placeholder-count="4"><span class="tag tag-neutral" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">{{ tech }}</span></sc-for></div>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-neutral-600);margin-bottom:5px">{{ L.arch_h }}</div>
+              <p style="font-size:13px;line-height:1.65;color:var(--color-neutral-800);margin:0 0 16px">{{ sel.arch }}</p>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-neutral-600);margin-bottom:5px">Repository</div>
+              <div style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--color-accent-700);margin-bottom:16px;word-break:break-all">{{ sel.repo }}</div>
+              <sc-if value="{{ sel.notes }}"><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-neutral-600);margin-bottom:5px">{{ L.notes_h }}</div><p style="font-size:13px;line-height:1.65;color:var(--color-neutral-800);margin:0">{{ sel.notes }}</p></sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showAdd }}">
+      <div onClick="{{ closeAdd }}" style="position:absolute;inset:0;z-index:48;background:color-mix(in srgb,var(--color-neutral-900) 45%,transparent)"></div>
+      <div style="position:absolute;left:0;right:0;bottom:0;z-index:49;background:var(--color-surface);border-top:2px solid var(--color-divider);animation:sheetUp .22s ease;padding:18px 16px 30px;display:flex;flex-direction:column;gap:13px">
+        <div style="font-family:var(--font-heading);font-weight:800;font-size:19px">{{ dialogTitle }}</div>
+        <div class="field"><label>{{ L.f_title }}</label><input class="input" value="{{ form.title }}" onInput="{{ setFormTitle }}" placeholder="{{ L.ph_task }}"></div>
+        <div style="display:flex;gap:10px">
+          <div class="field" style="flex:1"><label>{{ L.f_project }}</label><select class="input" value="{{ form.projectId }}" onChange="{{ setFormProject }}"><sc-for list="{{ projects }}" as="p" hint-placeholder-count="4"><option value="{{ p.id }}">{{ p.name }}</option></sc-for></select></div>
+          <div class="field" style="flex:1"><label>{{ L.f_due }}</label><input class="input" type="date" value="{{ form.due }}" onChange="{{ setFormDue }}"></div>
+        </div>
+        <div class="field"><label>{{ L.f_priority }}</label>
+          <div style="display:flex;gap:22px;margin-top:3px">
+            <div onClick="{{ toggleUrgent }}" style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:14px"><span style="width:20px;height:20px;border:1.5px solid {{ form.urgentBorder }};background:{{ form.urgentBg }};display:grid;place-items:center"><sc-if value="{{ form.urgent }}"><i data-lucide="check" style="width:13px;height:13px;color:var(--color-bg)"></i></sc-if></span>{{ L.urgent }}</div>
+            <div onClick="{{ toggleImportant }}" style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:14px"><span style="width:20px;height:20px;border:1.5px solid {{ form.importantBorder }};background:{{ form.importantBg }};display:grid;place-items:center"><sc-if value="{{ form.important }}"><i data-lucide="check" style="width:13px;height:13px;color:var(--color-bg)"></i></sc-if></span>{{ L.important }}</div>
+          </div>
+        </div>
+        <div class="field"><label>{{ L.tags_h }}</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px"><sc-for list="{{ formTags }}" as="tg" hint-placeholder-count="6"><button onClick="{{ tg.toggle }}" style="padding:6px 11px;border:1px solid {{ tg.border }};background:{{ tg.bg }};color:{{ tg.color }};cursor:pointer;font:600 11.5px var(--font-body)">#{{ tg.label }}</button></sc-for></div></div>
+        <div style="display:flex;gap:8px;margin-top:4px"><button class="btn btn-secondary" style="flex:1;justify-content:center" onClick="{{ closeAdd }}">{{ L.cancel }}</button><button class="btn btn-primary" style="flex:1;justify-content:center" onClick="{{ submitAdd }}"><i data-lucide="{{ submitIcon }}"></i><span>{{ submitLabel }}</span></button></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showInvite }}">
+      <div onClick="{{ closeInvite }}" style="position:absolute;inset:0;z-index:48;background:color-mix(in srgb,var(--color-neutral-900) 45%,transparent)"></div>
+      <div style="position:absolute;left:0;right:0;bottom:0;z-index:49;background:var(--color-surface);border-top:2px solid var(--color-divider);animation:sheetUp .22s ease;padding:18px 16px 30px;display:flex;flex-direction:column;gap:13px">
+        <div style="font-family:var(--font-heading);font-weight:800;font-size:19px">{{ L.invite_new }}</div>
+        <div class="field"><label>{{ L.f_name }}</label><input class="input" value="{{ invite.name }}" onInput="{{ setInviteName }}" placeholder="{{ L.ph_name }}"></div>
+        <div class="field"><label>{{ L.f_email }}</label><input class="input" type="email" value="{{ invite.email }}" onInput="{{ setInviteEmail }}" placeholder="name@acme.co"></div>
+        <div class="field"><label>{{ L.f_role }}</label><div style="display:flex;gap:6px;margin-top:3px"><sc-for list="{{ inviteRoleOpts }}" as="r" hint-placeholder-count="3"><button onClick="{{ r.pick }}" style="flex:1;padding:8px;border:1px solid {{ r.border }};background:{{ r.bg }};color:{{ r.color }};cursor:pointer;font:600 12px var(--font-body)">{{ r.l }}</button></sc-for></div></div>
+        <div style="display:flex;gap:8px;margin-top:4px"><button class="btn btn-secondary" style="flex:1;justify-content:center" onClick="{{ closeInvite }}">{{ L.cancel }}</button><button class="btn btn-primary" style="flex:1;justify-content:center" onClick="{{ submitInvite }}"><i data-lucide="send"></i><span>{{ L.send_invite }}</span></button></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ notAuthed }}">
+      <div style="position:absolute;inset:0;z-index:60;background:var(--color-bg);display:flex;flex-direction:column">
+        <div style="flex:none;height:44px"></div>
+        <div style="background:var(--color-accent);color:#fff;padding:26px 26px 32px;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center">
+            <div style="font-family:var(--font-heading);font-weight:800;font-size:23px;letter-spacing:-0.02em;flex:1">INNOVERA</div>
+            <div style="display:flex;border:1px solid rgba(255,255,255,.5);overflow:hidden;height:32px">
+              <button onClick="{{ setTH }}" style="padding:0 12px;border:0;cursor:pointer;font:700 12px var(--font-heading);background:{{ lgThBg }};color:{{ lgThColor }}">TH</button>
+              <button onClick="{{ setEN }}" style="padding:0 12px;border:0;border-left:1px solid rgba(255,255,255,.5);cursor:pointer;font:700 12px var(--font-heading);background:{{ lgEnBg }};color:{{ lgEnColor }}">EN</button>
+            </div>
+          </div>
+          <div style="font-family:var(--font-heading);font-weight:800;font-size:42px;line-height:1.03;letter-spacing:-0.02em;margin-top:34px">INNOVERA<br>PLAN</div>
+          <div style="height:2px;background:rgba(255,255,255,.55);margin:22px 0 12px"></div>
+          <div style="font-size:11px;letter-spacing:0.16em;text-transform:uppercase;opacity:.9">Work Planner</div>
+        </div>
+        <div style="flex:1;padding:30px 26px;display:flex;flex-direction:column">
+          <h2 style="font-size:24px;margin:0 0 4px">{{ L.lg_title }}</h2>
+          <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 24px">{{ L.lg_sub }}</p>
+          <div class="field" style="margin-bottom:14px"><label>{{ L.lg_email }}</label><input class="input" type="email" value="thanakorn@acme.co" placeholder="name@acme.co"></div>
+          <div class="field" style="margin-bottom:24px"><label>{{ L.lg_pass }}</label><input class="input" type="password" value="password"></div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;height:48px" onClick="{{ doLogin }}">{{ L.lg_signin }}</button>
+          <div style="flex:1"></div>
+          <div style="font-size:11px;color:var(--color-neutral-500);text-align:center;padding-top:20px">© 2026 Work Planner</div>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;440&quot;,&quot;height&quot;:&quot;920&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    const P = [
+      { id:'p1', name:'Payment Gateway v2', dot:'var(--color-accent)', start:'2026-05-01', due:'2026-09-30',
+        stack:['React 18','TypeScript','Node / Express','PostgreSQL 15','Stripe API','Docker'],
+        arch:'Microservice — API gateway + payment-service + webhook-worker แยกกัน คุยผ่าน REST/queue, deploy บน AWS ECS (Fargate) เบื้องหลัง ALB',
+        repo:'git@github.com:acme/pay-gateway.git',
+        notes:'ใช้ idempotency-key กันคิดเงินซ้ำ · เก็บ audit log ทุก transaction · webhook verify signature ก่อน process' },
+      { id:'p2', name:'Loyalty Mobile App', dot:'var(--color-neutral-800)', start:'2026-06-15', due:'2026-10-31',
+        stack:['Flutter 3','Dart','Firebase Auth','Firestore','Cloud Functions','Riverpod'],
+        arch:'Clean architecture 3 ชั้น presentation / domain / data, state ด้วย Riverpod, ออฟไลน์-เฟิร์สต์ด้วย Firestore cache',
+        repo:'git@github.com:acme/loyalty-app.git',
+        notes:'points ledger เก็บเป็น append-only เพื่อ audit · sync แต้มผ่าน Cloud Function trigger' },
+      { id:'p3', name:'Reporting Data Pipeline', dot:'var(--color-neutral-500)', start:'2026-04-01', due:'2026-08-15',
+        stack:['Python 3.12','Apache Airflow','dbt','BigQuery','Metabase'],
+        arch:'ELT — ingest → staging → mart, orchestrate ด้วย Airflow schedule รายวัน 02:00, transform ด้วย dbt, dashboard บน Metabase',
+        repo:'git@github.com:acme/data-pipeline.git',
+        notes:'partition ตาราง mart ตามวันที่เพื่อลดค่า scan BigQuery · dbt test ทุก model ก่อน deploy' },
+      { id:'p4', name:'CRM Migration', dot:'var(--color-accent-2-500)', start:'2026-07-01', due:'2026-12-15',
+        stack:['Next.js 14','tRPC','Prisma','PostgreSQL','.NET (legacy)'],
+        arch:'Strangler-fig — reverse proxy ค่อยๆ ย้าย module จาก .NET เดิมมาที่ Next.js ทีละส่วน จนกว่าจะปิดของเก่าได้',
+        repo:'git@github.com:acme/crm-next.git',
+        notes:'proxy route ที่ยังไม่ย้ายให้วิ่งกลับ .NET · แชร์ session ผ่าน JWT ร่วมกันระหว่างสองระบบ' },
+    ];
+    const T = [
+      { id:'t1', p:'p1', title:'ออกแบบ schema ตาราง transaction', status:'Done', imp:true, urg:false, due:'2026-05-20', est:6, spent:7, desc:'', subs:[] },
+      { id:'t2', p:'p1', title:'เชื่อม Stripe webhook + verify signature', status:'In Progress', imp:true, urg:true, due:'2026-07-13', est:10, spent:6, desc:'รับ event จาก Stripe แล้ว verify signature ก่อน process ต้องรองรับ retry และกันซ้ำด้วย idempotency', subs:[{t:'รับ event endpoint',d:true},{t:'verify signature',d:true},{t:'idempotency handling',d:false},{t:'retry queue',d:false}] },
+      { id:'t3', p:'p1', title:'เขียน unit test payment-service', status:'To Do', imp:true, urg:false, due:'2026-07-24', est:8, spent:0, desc:'ครอบคลุม charge / refund / partial-refund และ edge case', subs:[] },
+      { id:'t4', p:'p1', title:'แก้บั๊ก double-charge บน sandbox', status:'In Progress', imp:true, urg:true, due:'2026-07-11', est:4, spent:2, desc:'พบว่าเมื่อ network timeout ระบบ retry แล้วคิดเงินซ้ำ ต้องใช้ idempotency-key', subs:[] },
+      { id:'t5', p:'p2', title:'ทำหน้า onboarding + login Firebase', status:'In Progress', imp:true, urg:true, due:'2026-07-15', est:12, spent:5, desc:'', subs:[{t:'UI 3 หน้า onboarding',d:true},{t:'Google / Apple sign-in',d:false},{t:'จัดการ error state',d:false}] },
+      { id:'t6', p:'p2', title:'ระบบสะสมแต้ม (points ledger)', status:'Backlog', imp:true, urg:false, due:'2026-08-05', est:16, spent:0, desc:'append-only ledger บน Firestore, คำนวณยอดคงเหลือแบบ realtime', subs:[] },
+      { id:'t7', p:'p2', title:'ดีไซน์ push notification flow', status:'To Do', imp:false, urg:false, due:'2026-07-28', est:5, spent:0, desc:'', subs:[] },
+      { id:'t8', p:'p3', title:'Migrate dbt models mart_sales', status:'Review', imp:true, urg:false, due:'2026-07-14', est:6, spent:5, desc:'ย้าย logic รายงานยอดขายจาก SQL เดิมมาเป็น dbt model + test', subs:[{t:'staging model',d:true},{t:'mart model',d:true},{t:'dbt test',d:false}] },
+      { id:'t9', p:'p3', title:'ตั้ง Airflow DAG รายวัน', status:'Done', imp:true, urg:false, due:'2026-06-30', est:4, spent:4, desc:'', subs:[] },
+      { id:'t10', p:'p3', title:'แก้ query BigQuery ช้า (scan สูง)', status:'To Do', imp:false, urg:true, due:'2026-07-13', est:3, spent:0, desc:'partition + cluster ตารางเพื่อลด bytes scanned', subs:[] },
+      { id:'t11', p:'p4', title:'Setup Next.js 14 + tRPC skeleton', status:'In Progress', imp:true, urg:false, due:'2026-07-18', est:8, spent:3, desc:'', subs:[{t:'init repo + CI',d:true},{t:'tRPC router base',d:false},{t:'Prisma schema แรก',d:false}] },
+      { id:'t12', p:'p4', title:'เขียน proxy strangler-fig', status:'Backlog', imp:true, urg:false, due:'2026-08-01', est:20, spent:0, desc:'reverse proxy ที่ route ไป .NET เดิมสำหรับ path ที่ยังไม่ย้าย', subs:[] },
+      { id:'t13', p:'p4', title:'ประชุม kickoff กับทีม legacy', status:'To Do', imp:true, urg:true, due:'2026-07-12', est:1, spent:0, desc:'สรุปขอบเขต module ที่จะย้ายก่อน และ dependency ต่อกัน', subs:[] },
+      { id:'t14', p:'p1', title:'รีวิว PR ของทีม', status:'To Do', imp:false, urg:true, due:'2026-07-12', est:1, spent:0, desc:'', subs:[] },
+      { id:'t15', p:'p2', title:'เรียน course Kubernetes', status:'Backlog', imp:true, urg:false, due:null, est:20, spent:2, desc:'พัฒนาตัวเองสำหรับ deploy microservice', subs:[] },
+      { id:'t16', p:'p4', title:'อัปเดต portfolio + resume', status:'Backlog', imp:false, urg:false, due:null, est:4, spent:0, desc:'', subs:[] },
+    ];
+    const U=[
+      {id:'u1',name:'ธนกร ศ.',email:'thanakorn@acme.co',role:'admin',status:'active',me:true},
+      {id:'u2',name:'ปรียา ว.',email:'preeya@acme.co',role:'member',status:'active'},
+      {id:'u3',name:'วิศรุต ก.',email:'wisarut@acme.co',role:'member',status:'active'},
+      {id:'u4',name:'มินตรา พ.',email:'mintra@acme.co',role:'viewer',status:'invited'},
+    ];
+    const SEEDASG={t1:'u1',t2:'u1',t3:'u2',t4:'u1',t5:'u3',t6:'u3',t7:'u2',t8:'u2',t9:'u1',t10:'u3',t11:'u1',t12:'u3',t13:'u1',t14:'u2',t15:'u1',t16:'u1'};
+    T.forEach(t=>{ t.assignee=SEEDASG[t.id]||'u1'; });
+    this.state = { view:'dashboard', selId:null, showAdd:false, editId:null, showNotif:false, showInvite:false, showMore:false, lang:'th', authed:false, calSel:'2026-07-12', tagFilter:null, assigneeFilter:null, weekLog:[6,5.5,7,4.5,6,3,2], projects:P, tasks:T, users:U, form:{ title:'', projectId:'p1', due:'', status:'To Do', urgent:false, important:true, tags:[] }, invite:{ name:'', email:'', role:'member' } };
+    this.TAGS=[{id:'bug',label:'บั๊ก'},{id:'feature',label:'ฟีเจอร์'},{id:'infra',label:'โครงสร้าง'},{id:'test',label:'เทสต์'},{id:'meeting',label:'ประชุม'},{id:'research',label:'ศึกษา'},{id:'refactor',label:'รีแฟกเตอร์'},{id:'review',label:'รีวิวโค้ด'}];
+    const SEEDTAG={t1:['infra','feature'],t2:['feature'],t3:['test'],t4:['bug'],t5:['feature'],t6:['feature'],t7:['feature','research'],t8:['refactor','feature'],t9:['infra'],t10:['bug','infra'],t11:['infra'],t12:['infra','feature'],t13:['meeting'],t14:['review'],t15:['research'],t16:[]};
+    T.forEach(t=>{ t.tags=SEEDTAG[t.id]||[]; });
+    this.ROLE={admin:'แอดมิน',member:'สมาชิก',viewer:'ผู้ชม'};
+    this.USTATUS={active:'ใช้งาน',invited:'รอตอบรับ',disabled:'ปิดใช้งาน'};
+    this.today = new Date('2026-07-12T00:00:00');
+    this.MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    this.ORDER = ['Backlog','To Do','In Progress','Review','Done'];
+    this.STL = {'Backlog':'ค้างไว้','To Do':'รอทำ','In Progress':'กำลังทำ','Review':'รีวิว','Done':'เสร็จ'};
+    this.STDOT = {'Backlog':'var(--color-neutral-400)','To Do':'var(--color-neutral-600)','In Progress':'var(--color-accent)','Review':'var(--color-accent-2-500)','Done':'var(--color-neutral-800)'};
+    const en={ mon:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], status:{'Backlog':'Backlog','To Do':'To Do','In Progress':'In Progress','Review':'Review','Done':'Done'}, role:{admin:'Admin',member:'Member',viewer:'Viewer'}, ustatus:{active:'Active',invited:'Invited',disabled:'Disabled'}, q_do:'Do now',q_plan:'Plan',q_quick:'Quick',q_later:'Later', matrix:{do:{t:'Do first',tag:'Urgent + Important',hint:'Handle immediately'},plan:{t:'Schedule',tag:'Important, not urgent',hint:'Plan ahead'},quick:{t:'Clear fast',tag:'Urgent, not important',hint:'Finish quickly or delegate'},later:{t:'Later',tag:'Not urgent/important',hint:'Consider dropping or deferring'}}, d_done:'Done',d_none:'No date',d_today:'Today',d_tomorrow:'Tomorrow',d_over:n=>n+'d overdue',d_in:n=>'in '+n+'d', b_overdue:'Overdue',b_today:'Today',b_week:'This week',b_later:'Later',b_none:'No date',b_done:'Completed', ut_accept:'Accept',ut_disable:'Disable',ut_enable:'Enable', s_open:'Open tasks',s_over:'Overdue',s_due7:'Due in 7d',s_done:'Completed', tab:{dashboard:'Home',list:'Tasks',kanban:'Board',calendar:'Calendar',timeline:'Timeline',time:'Time',matrix:'Priority',team:'Team'}, title:{dashboard:'Overview',list:'Tasks',kanban:'Board',calendar:'Calendar',timeline:'Timeline',time:'Time summary',matrix:'Prioritize',team:'Team / Users'}, brand_sub:'Work Planner', focus_today:'Today\u2019s focus', proj_progress:'Project progress', no_focus:'Nothing urgent today \ud83c\udfaf', overdue_title:'Overdue tasks', unit_task:' tasks', deliver:'due', done_of:' done', assign_to:'Assigned to', change:'Change', status:'Status', detail:'Details', time_used:'Time spent', subtasks:'Subtasks', proj_info:'Project info', arch_h:'Structure / Architecture', notes_h:'Technical notes', tags_h:'Tags', add_task:'Add task', add_task_new:'New task', f_title:'Task name', f_project:'Project', f_due:'Due date', f_priority:'Priority', urgent:'Urgent', important:'Important', cancel:'Cancel', invite:'Invite user', invite_new:'Invite new user', f_name:'Name', f_email:'Email', f_role:'Role', send_invite:'Send invite', time_7d:'Hours logged \u2013 last 7 days', time_by_proj:'Time by project', unit_note:'Unit: hours \u00b7 red = today', total_week:'This week', avg_day:'Avg / day', top_day:'Most active', time_tip:'\ud83d\udca1 Log time from the task detail (+15m / +1h / +2h) \u2014 it adds to today', clear:'Clear', members_pre:'', members_post:' members', ph_task:'e.g. write API /orders', ph_name:'e.g. John Doe', lg_title:'Sign in', lg_sub:'Manage your work and projects', lg_email:'Email', lg_pass:'Password', lg_signin:'Sign in', lg_tagline:'Plan \u00b7 Track \u00b7 Ship' };
+    const th={ mon:this.MON, status:{'Backlog':'\u0e04\u0e49\u0e32\u0e07\u0e44\u0e27\u0e49','To Do':'\u0e23\u0e2d\u0e17\u0e33','In Progress':'\u0e01\u0e33\u0e25\u0e31\u0e07\u0e17\u0e33','Review':'\u0e23\u0e35\u0e27\u0e34\u0e27','Done':'\u0e40\u0e2a\u0e23\u0e47\u0e08'}, role:{admin:'\u0e41\u0e2d\u0e14\u0e21\u0e34\u0e19',member:'\u0e2a\u0e21\u0e32\u0e0a\u0e34\u0e01',viewer:'\u0e1c\u0e39\u0e49\u0e0a\u0e21'}, ustatus:{active:'\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19',invited:'\u0e23\u0e2d\u0e15\u0e2d\u0e1a\u0e23\u0e31\u0e1a',disabled:'\u0e1b\u0e34\u0e14\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19'}, q_do:'\u0e17\u0e33\u0e40\u0e25\u0e22',q_plan:'\u0e27\u0e32\u0e07\u0e41\u0e1c\u0e19',q_quick:'\u0e23\u0e35\u0e1a\u0e40\u0e04\u0e25\u0e35\u0e22\u0e23\u0e4c',q_later:'\u0e44\u0e27\u0e49\u0e17\u0e35\u0e2b\u0e25\u0e31\u0e07', matrix:{do:{t:'\u0e17\u0e33\u0e01\u0e48\u0e2d\u0e19\u0e40\u0e25\u0e22',tag:'\u0e14\u0e48\u0e27\u0e19 + \u0e2a\u0e33\u0e04\u0e31\u0e0d',hint:'\u0e08\u0e31\u0e14\u0e01\u0e32\u0e23\u0e17\u0e31\u0e19\u0e17\u0e35'},plan:{t:'\u0e27\u0e32\u0e07\u0e41\u0e1c\u0e19\u0e17\u0e33',tag:'\u0e2a\u0e33\u0e04\u0e31\u0e0d \u0e44\u0e21\u0e48\u0e14\u0e48\u0e27\u0e19',hint:'\u0e01\u0e33\u0e2b\u0e19\u0e14\u0e40\u0e27\u0e25\u0e32\u0e44\u0e27\u0e49\u0e25\u0e48\u0e27\u0e07\u0e2b\u0e19\u0e49\u0e32'},quick:{t:'\u0e23\u0e35\u0e1a\u0e40\u0e04\u0e25\u0e35\u0e22\u0e23\u0e4c',tag:'\u0e14\u0e48\u0e27\u0e19 \u0e44\u0e21\u0e48\u0e2a\u0e33\u0e04\u0e31\u0e0d',hint:'\u0e17\u0e33\u0e43\u0e2b\u0e49\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e40\u0e23\u0e47\u0e27\u0e46 \u0e2b\u0e23\u0e37\u0e2d\u0e21\u0e2d\u0e1a\u0e2b\u0e21\u0e32\u0e22'},later:{t:'\u0e44\u0e27\u0e49\u0e17\u0e35\u0e2b\u0e25\u0e31\u0e07',tag:'\u0e44\u0e21\u0e48\u0e14\u0e48\u0e27\u0e19 \u0e44\u0e21\u0e48\u0e2a\u0e33\u0e04\u0e31\u0e0d',hint:'\u0e1e\u0e34\u0e08\u0e32\u0e23\u0e13\u0e32\u0e15\u0e31\u0e14\u0e17\u0e34\u0e49\u0e07\u0e2b\u0e23\u0e37\u0e2d\u0e40\u0e25\u0e37\u0e48\u0e2d\u0e19'}}, d_done:'\u0e40\u0e2a\u0e23\u0e47\u0e08',d_none:'\u0e44\u0e21\u0e48\u0e21\u0e35\u0e01\u0e33\u0e2b\u0e19\u0e14',d_today:'\u0e27\u0e31\u0e19\u0e19\u0e35\u0e49',d_tomorrow:'\u0e1e\u0e23\u0e38\u0e48\u0e07\u0e19\u0e35\u0e49',d_over:n=>'\u0e40\u0e01\u0e34\u0e19 '+n+' \u0e27\u0e31\u0e19',d_in:n=>'\u0e2d\u0e35\u0e01 '+n+' \u0e27\u0e31\u0e19', b_overdue:'\u0e40\u0e01\u0e34\u0e19\u0e01\u0e33\u0e2b\u0e19\u0e14',b_today:'\u0e27\u0e31\u0e19\u0e19\u0e35\u0e49',b_week:'\u0e2a\u0e31\u0e1b\u0e14\u0e32\u0e2b\u0e4c\u0e19\u0e35\u0e49',b_later:'\u0e20\u0e32\u0e22\u0e2b\u0e25\u0e31\u0e07',b_none:'\u0e44\u0e21\u0e48\u0e21\u0e35\u0e01\u0e33\u0e2b\u0e19\u0e14',b_done:'\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e41\u0e25\u0e49\u0e27', ut_accept:'\u0e22\u0e2d\u0e21\u0e23\u0e31\u0e1a',ut_disable:'\u0e1b\u0e34\u0e14\u0e43\u0e0a\u0e49',ut_enable:'\u0e40\u0e1b\u0e34\u0e14\u0e43\u0e0a\u0e49', s_open:'\u0e07\u0e32\u0e19\u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e17\u0e33',s_over:'\u0e40\u0e01\u0e34\u0e19\u0e01\u0e33\u0e2b\u0e19\u0e14',s_due7:'\u0e04\u0e23\u0e1a\u0e43\u0e19 7 \u0e27\u0e31\u0e19',s_done:'\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e41\u0e25\u0e49\u0e27', tab:{dashboard:'\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21',list:'\u0e07\u0e32\u0e19',kanban:'\u0e1a\u0e2d\u0e23\u0e4c\u0e14',calendar:'\u0e1b\u0e0f\u0e34\u0e17\u0e34\u0e19',timeline:'\u0e40\u0e2a\u0e49\u0e19\u0e40\u0e27\u0e25\u0e32',time:'\u0e40\u0e27\u0e25\u0e32',matrix:'\u0e25\u0e33\u0e14\u0e31\u0e1a',team:'\u0e17\u0e35\u0e21'}, title:{dashboard:'\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21',list:'\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e07\u0e32\u0e19',kanban:'\u0e1a\u0e2d\u0e23\u0e4c\u0e14\u0e07\u0e32\u0e19',calendar:'\u0e1b\u0e0f\u0e34\u0e17\u0e34\u0e19',timeline:'\u0e40\u0e2a\u0e49\u0e19\u0e40\u0e27\u0e25\u0e32',time:'\u0e2a\u0e23\u0e38\u0e1b\u0e40\u0e27\u0e25\u0e32',matrix:'\u0e08\u0e31\u0e14\u0e25\u0e33\u0e14\u0e31\u0e1a',team:'\u0e17\u0e35\u0e21 / \u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49'}, brand_sub:'Work Planner', focus_today:'\u0e42\u0e1f\u0e01\u0e31\u0e2a\u0e27\u0e31\u0e19\u0e19\u0e35\u0e49', proj_progress:'\u0e04\u0e27\u0e32\u0e21\u0e04\u0e37\u0e1a\u0e2b\u0e19\u0e49\u0e32\u0e42\u0e1b\u0e23\u0e40\u0e08\u0e01\u0e15\u0e4c', no_focus:'\u0e44\u0e21\u0e48\u0e21\u0e35\u0e07\u0e32\u0e19\u0e14\u0e48\u0e27\u0e19\u0e27\u0e31\u0e19\u0e19\u0e35\u0e49 \ud83c\udfaf', overdue_title:'\u0e07\u0e32\u0e19\u0e40\u0e01\u0e34\u0e19\u0e01\u0e33\u0e2b\u0e19\u0e14', unit_task:' \u0e07\u0e32\u0e19', deliver:'\u0e2a\u0e48\u0e07', done_of:' \u0e07\u0e32\u0e19\u0e40\u0e2a\u0e23\u0e47\u0e08', assign_to:'\u0e21\u0e2d\u0e1a\u0e2b\u0e21\u0e32\u0e22\u0e43\u0e2b\u0e49', change:'\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19', status:'\u0e2a\u0e16\u0e32\u0e19\u0e30', detail:'\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14', time_used:'\u0e40\u0e27\u0e25\u0e32\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49', subtasks:'\u0e07\u0e32\u0e19\u0e22\u0e48\u0e2d\u0e22', proj_info:'\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e42\u0e1b\u0e23\u0e40\u0e08\u0e01\u0e15\u0e4c', arch_h:'\u0e42\u0e04\u0e23\u0e07\u0e2a\u0e23\u0e49\u0e32\u0e07 / \u0e2a\u0e16\u0e32\u0e1b\u0e31\u0e15\u0e22\u0e01\u0e23\u0e23\u0e21', notes_h:'\u0e42\u0e19\u0e49\u0e15\u0e17\u0e32\u0e07\u0e40\u0e17\u0e04\u0e19\u0e34\u0e04', tags_h:'\u0e1b\u0e49\u0e32\u0e22\u0e01\u0e33\u0e01\u0e31\u0e1a', add_task:'\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e07\u0e32\u0e19', add_task_new:'\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e07\u0e32\u0e19\u0e43\u0e2b\u0e21\u0e48', f_title:'\u0e0a\u0e37\u0e48\u0e2d\u0e07\u0e32\u0e19', f_project:'\u0e42\u0e1b\u0e23\u0e40\u0e08\u0e01\u0e15\u0e4c', f_due:'\u0e01\u0e33\u0e2b\u0e19\u0e14\u0e2a\u0e48\u0e07', f_priority:'\u0e04\u0e27\u0e32\u0e21\u0e2a\u0e33\u0e04\u0e31\u0e0d', urgent:'\u0e14\u0e48\u0e27\u0e19', important:'\u0e2a\u0e33\u0e04\u0e31\u0e0d', cancel:'\u0e22\u0e01\u0e40\u0e25\u0e34\u0e01', invite:'\u0e40\u0e0a\u0e34\u0e0d\u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19', invite_new:'\u0e40\u0e0a\u0e34\u0e0d\u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49\u0e43\u0e2b\u0e21\u0e48', f_name:'\u0e0a\u0e37\u0e48\u0e2d', f_email:'\u0e2d\u0e35\u0e40\u0e21\u0e25', f_role:'\u0e1a\u0e17\u0e1a\u0e32\u0e17', send_invite:'\u0e2a\u0e48\u0e07\u0e04\u0e33\u0e40\u0e0a\u0e34\u0e0d', time_7d:'\u0e0a\u0e31\u0e48\u0e27\u0e42\u0e21\u0e07\u0e17\u0e35\u0e48\u0e25\u0e07 7 \u0e27\u0e31\u0e19\u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14', time_by_proj:'\u0e40\u0e27\u0e25\u0e32\u0e2a\u0e30\u0e2a\u0e21\u0e15\u0e32\u0e21\u0e42\u0e1b\u0e23\u0e40\u0e08\u0e01\u0e15\u0e4c', unit_note:'\u0e2b\u0e19\u0e48\u0e27\u0e22: \u0e0a\u0e31\u0e48\u0e27\u0e42\u0e21\u0e07 \u00b7 \u0e41\u0e14\u0e07 = \u0e27\u0e31\u0e19\u0e19\u0e35\u0e49', total_week:'\u0e23\u0e27\u0e21\u0e2a\u0e31\u0e1b\u0e14\u0e32\u0e2b\u0e4c\u0e19\u0e35\u0e49', avg_day:'\u0e40\u0e09\u0e25\u0e35\u0e48\u0e22/\u0e27\u0e31\u0e19', top_day:'\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e25\u0e07\u0e21\u0e32\u0e01\u0e2a\u0e38\u0e14', time_tip:'\ud83d\udca1 \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e27\u0e25\u0e32\u0e44\u0e14\u0e49\u0e08\u0e32\u0e01\u0e2b\u0e19\u0e49\u0e32\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14\u0e07\u0e32\u0e19 (+15\u0e19 / +1\u0e0a\u0e21 / +2\u0e0a\u0e21) \u2014 \u0e40\u0e27\u0e25\u0e32\u0e17\u0e35\u0e48\u0e25\u0e07\u0e08\u0e30\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e02\u0e49\u0e32\u0e27\u0e31\u0e19\u0e19\u0e35\u0e49', clear:'\u0e25\u0e49\u0e32\u0e07', members_pre:'\u0e2a\u0e21\u0e32\u0e0a\u0e34\u0e01\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14 ', members_post:' \u0e04\u0e19', ph_task:'\u0e40\u0e0a\u0e48\u0e19 \u0e40\u0e02\u0e35\u0e22\u0e19 API /orders', ph_name:'\u0e40\u0e0a\u0e48\u0e19 \u0e2a\u0e21\u0e0a\u0e32\u0e22 \u0e43\u0e08\u0e14\u0e35', lg_title:'\u0e40\u0e02\u0e49\u0e32\u0e2a\u0e39\u0e48\u0e23\u0e30\u0e1a\u0e1a', lg_sub:'\u0e08\u0e31\u0e14\u0e01\u0e32\u0e23\u0e07\u0e32\u0e19\u0e41\u0e25\u0e30\u0e42\u0e1b\u0e23\u0e40\u0e08\u0e01\u0e15\u0e4c\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13', lg_email:'\u0e2d\u0e35\u0e40\u0e21\u0e25', lg_pass:'\u0e23\u0e2b\u0e31\u0e2a\u0e1c\u0e48\u0e32\u0e19', lg_signin:'\u0e40\u0e02\u0e49\u0e32\u0e2a\u0e39\u0e48\u0e23\u0e30\u0e1a\u0e1a', lg_tagline:'\u0e27\u0e32\u0e07\u0e41\u0e1c\u0e19 \u00b7 \u0e15\u0e34\u0e14\u0e15\u0e32\u0e21 \u00b7 \u0e2a\u0e48\u0e07\u0e21\u0e2d\u0e1a' };
+    this.I18N={ th, en };
+  }
+  componentDidMount(){ this._icons(); }
+  componentDidUpdate(){ this._icons(); }
+  _icons(){ if(window.lucide){ try{ window.lucide.createIcons(); }catch(e){} } }
+  iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  parse(s){ return new Date(s+'T00:00:00'); }
+  diffDays(s){ return Math.round((this.parse(s)-this.today)/86400000); }
+  get L(){ return this.I18N[this.state.lang]; }
+  fmtShort(s){ const d=this.parse(s); return d.getDate()+' '+this.L.mon[d.getMonth()]; }
+  quad(t){ const L=this.L; if(t.imp&&t.urg) return {key:'do',label:L.q_do,cls:'tag-accent'}; if(t.imp&&!t.urg) return {key:'plan',label:L.q_plan,cls:'tag-neutral'}; if(!t.imp&&t.urg) return {key:'quick',label:L.q_quick,cls:'tag-accent-2'}; return {key:'later',label:L.q_later,cls:'tag-neutral'}; }
+  dueInfo(t){ const L=this.L; if(t.status==='Done') return {label:L.d_done,cls:'tag-neutral'}; if(!t.due) return {label:L.d_none,cls:'tag-neutral'}; const d=this.diffDays(t.due); if(d<0) return {label:L.d_over(-d),cls:'tag-accent'}; if(d===0) return {label:L.d_today,cls:'tag-outline'}; if(d===1) return {label:L.d_tomorrow,cls:'tag-outline'}; if(d<=7) return {label:L.d_in(d),cls:'tag-neutral'}; return {label:this.fmtShort(t.due),cls:'tag-neutral'}; }
+  proj(id){ return this.state.projects.find(p=>p.id===id); }
+  decorate(t){
+    const pr=this.proj(t.p), q=this.quad(t), du=this.dueInfo(t), done=t.status==='Done';
+    const total=t.subs.length, dn=t.subs.filter(s=>s.d).length; const pct= total? Math.round(dn/total*100) : (done?100:0);
+    return { id:t.id, title:t.title, projectName:pr?pr.name:'', projDot:pr?pr.dot:'var(--color-neutral-500)', status:t.status, statusTh:this.L.status[t.status], done,
+      quadLabel:q.label, quadClass:q.cls, dueLabel:du.label, dueClass:du.cls, hasSubs:total>0, subLabel:dn+'/'+total, pct,
+      tagChips:(t.tags||[]).map(id=>({id,label:this.tagLabel(id)})), hasTags:(t.tags||[]).length>0,
+      checkBorder: done?'var(--color-accent)':'var(--color-neutral-400)', checkBg: done?'var(--color-accent)':'transparent',
+      titleColor: done?'var(--color-neutral-500)':'var(--color-text)', strike: done?'line-through':'none',
+      open:()=>this.setState({selId:t.id,showNotif:false}),
+      dragStart:(e)=>{ this._drag=t.id; if(e.dataTransfer){e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',t.id);}catch(x){}} },
+      dragEnd:()=>{ this._drag=null; if(this.state.dragCol)this.setState({dragCol:null}); },
+      toggleDone:(e)=>{ if(e&&e.stopPropagation)e.stopPropagation(); this.setStatus(t.id, done?'To Do':'Done'); },
+      next:(e)=>{ if(e&&e.stopPropagation)e.stopPropagation(); this.cycle(t.id,1); },
+      prev:(e)=>{ if(e&&e.stopPropagation)e.stopPropagation(); this.cycle(t.id,-1); } };
+  }
+  setStatus(id,status){ this.setState(s=>({tasks:s.tasks.map(t=>t.id===id?{...t,status}:t)})); }
+  cycle(id,dir){ this.setState(s=>({tasks:s.tasks.map(t=>{ if(t.id!==id)return t; let i=this.ORDER.indexOf(t.status)+dir; i=Math.max(0,Math.min(this.ORDER.length-1,i)); return {...t,status:this.ORDER[i]}; })})); }
+  toggleSub(id,idx){ this.setState(s=>({tasks:s.tasks.map(t=>t.id===id?{...t,subs:t.subs.map((x,i)=>i===idx?{...x,d:!x.d}:x)}:t)})); }
+  openEdit(id){ const t=this.state.tasks.find(x=>x.id===id); if(!t)return; this.setState({showAdd:true,editId:id,form:{title:t.title,projectId:t.p,due:t.due||'',status:t.status,urgent:t.urg,important:t.imp,tags:(t.tags||[]).slice()}}); }
+  deleteTask(id){ this.setState(s=>({tasks:s.tasks.filter(x=>x.id!==id),selId:null})); }
+  tagLabel(id){ const x=this.TAGS.find(g=>g.id===id); return x?x.label:id; }
+  toggleTag(id,tagId){ this.setState(s=>({tasks:s.tasks.map(t=>{ if(t.id!==id)return t; const has=(t.tags||[]).includes(tagId); return {...t,tags:has?t.tags.filter(x=>x!==tagId):(t.tags||[]).concat([tagId])}; })})); }
+  initials(name){ return (name||'').split(' ').map(w=>w[0]||'').join('').slice(0,2); }
+  setRole(id,role){ this.setState(s=>({users:s.users.map(u=>u.id===id?{...u,role}:u)})); }
+  setUserStatus(id,status){ this.setState(s=>({users:s.users.map(u=>u.id===id?{...u,status}:u)})); }
+  removeUser(id){ this.setState(s=>({users:s.users.filter(u=>u.id!==id), tasks:s.tasks.map(t=>t.assignee===id?{...t,assignee:'u1'}:t)})); }
+  setAssignee(id,uid){ this.setState(s=>({tasks:s.tasks.map(t=>t.id===id?{...t,assignee:uid}:t)})); }
+  logTime(id,mins){ this.setState(s=>{ const wl=s.weekLog.slice(); wl[6]=Math.round((wl[6]+mins/60)*100)/100; return {tasks:s.tasks.map(t=>t.id===id?{...t,spent:Math.round((t.spent+mins/60)*100)/100}:t), weekLog:wl}; }); }
+  fmtHours(h){ const en=this.state.lang==='en'; if(h>=1||h===0) return (Math.round(h*10)/10)+(en?' h':' ชม'); return Math.round(h*60)+(en?'m':' น'); }
+
+  renderVals(){
+    const S=this.state, self=this;
+    const open=this.state.tasks.filter(t=>t.status!=='Done');
+    const tf=S.tagFilter, af=S.assigneeFilter; const tagOK=t=>(!tf||(t.tags||[]).includes(tf))&&(!af||t.assignee===af);
+    const overdue=open.filter(t=>t.due&&this.diffDays(t.due)<0);
+    const dueWk=open.filter(t=>t.due&&this.diffDays(t.due)>=0&&this.diffDays(t.due)<=7);
+    const doneCount=this.state.tasks.filter(t=>t.status==='Done').length;
+    const openCount=open.length;
+
+    const L=this.L;
+    const tabs=[
+      {key:'dashboard',icon:'layout-dashboard'},
+      {key:'list',icon:'list-checks'},
+      {key:'kanban',icon:'columns-3'},
+      {key:'calendar',icon:'calendar-days'},
+      {key:'timeline',icon:'gantt-chart'},
+      {key:'time',icon:'clock'},
+      {key:'matrix',icon:'grid-2x2'},
+      {key:'team',icon:'users'},
+    ].map(t=>({...t, label:L.tab[t.key], color:S.view===t.key?'var(--color-accent)':'var(--color-neutral-600)', go:()=>this.setState({view:t.key,selId:null,showNotif:false})}));
+
+    const titles=L.title;
+
+    const teamUsers=this.state.users.map(u=>{
+      const assigned=this.state.tasks.filter(t=>t.assignee===u.id&&t.status!=='Done').length;
+      const next = u.status==='invited'?'active':(u.status==='active'?'disabled':'active');
+      const toggleLabel = u.status==='invited'?L.ut_accept:(u.status==='active'?L.ut_disable:L.ut_enable);
+      const statusCls = u.status==='active'?'tag-neutral':(u.status==='invited'?'tag-outline':'tag-neutral');
+      return {...u, initials:this.initials(u.name), roleLabel:this.L.role[u.role], statusLabel:this.L.ustatus[u.status], assigned,
+        avatarBg: u.me?'var(--color-accent)':'var(--color-neutral-700)', statusCls, rowOpacity: u.status==='disabled'?'0.5':'1',
+        cycleRole:()=>{ const o=['admin','member','viewer']; this.setRole(u.id,o[(o.indexOf(u.role)+1)%3]); }, toggleStatus:()=>this.setUserStatus(u.id,next), toggleLabel,
+        canRemove:!u.me, remove:()=>this.removeUser(u.id) };
+    });
+
+    const stats=[
+      {label:L.s_open,value:openCount,color:'var(--color-text)'},
+      {label:L.s_over,value:overdue.length,color:overdue.length?'var(--color-accent)':'var(--color-text)'},
+      {label:L.s_due7,value:dueWk.length,color:'var(--color-text)'},
+      {label:L.s_done,value:doneCount,color:'var(--color-neutral-600)'},
+    ];
+    const focus=open.filter(t=>{ const q=this.quad(t); const d=t.due?this.diffDays(t.due):999; return d<=0||q.key==='do'; }).sort((a,b)=>(a.due?this.diffDays(a.due):999)-(b.due?this.diffDays(b.due):999)).map(t=>this.decorate(t));
+    const projectProgress=this.state.projects.map(p=>{ const ts=this.state.tasks.filter(t=>t.p===p.id); const dn=ts.filter(t=>t.status==='Done').length; const pct=ts.length?Math.round(dn/ts.length*100):0; return {name:p.name,dot:p.dot,pct,pctLabel:pct+'%',sub:dn+'/'+ts.length+L.done_of+' · '+L.deliver+' '+this.fmtShort(p.due)}; });
+
+    const buckets=[
+      {label:L.b_overdue,color:'var(--color-accent)',test:t=>t.due&&this.diffDays(t.due)<0},
+      {label:L.b_today,color:'var(--color-text)',test:t=>t.due&&this.diffDays(t.due)===0},
+      {label:L.b_week,color:'var(--color-text)',test:t=>t.due&&this.diffDays(t.due)>=1&&this.diffDays(t.due)<=7},
+      {label:L.b_later,color:'var(--color-neutral-700)',test:t=>t.due&&this.diffDays(t.due)>7},
+      {label:L.b_none,color:'var(--color-neutral-700)',test:t=>!t.due},
+    ];
+    const listGroups=buckets.map(b=>{ const ts=open.filter(t=>b.test(t)&&tagOK(t)).sort((a,b2)=>(a.due?this.parse(a.due):9e15)-(b2.due?this.parse(b2.due):9e15)); return {label:b.label,color:b.color,count:ts.length,tasks:ts.map(t=>this.decorate(t))}; }).filter(g=>g.count>0);
+    const doneTs=this.state.tasks.filter(t=>t.status==='Done'&&tagOK(t));
+    if(doneTs.length) listGroups.push({label:L.b_done,color:'var(--color-neutral-500)',count:doneTs.length,tasks:doneTs.map(t=>this.decorate(t))});
+
+    const kanbanCols=this.ORDER.map(st=>{ const ts=this.state.tasks.filter(t=>t.status===st&&tagOK(t)); const hot=S.dragCol===st; return {label:this.L.status[st],dot:this.STDOT[st],count:ts.length,tasks:ts.map(t=>this.decorate(t)),
+      border: hot?'var(--color-accent)':'var(--color-divider)', colBg: hot?'var(--color-accent-100)':'var(--color-surface)',
+      over:(e)=>{ e.preventDefault(); if(e.dataTransfer)e.dataTransfer.dropEffect='move'; if(this.state.dragCol!==st)this.setState({dragCol:st}); },
+      drop:(e)=>{ e.preventDefault(); const id=this._drag; this._drag=null; this.setState({dragCol:null}); if(id)this.setStatus(id,st); } }; });
+
+    const qdefs=[
+      {key:'do',title:L.matrix.do.t,tag:L.matrix.do.tag,tagClass:'tag-accent',hint:L.matrix.do.hint,accent:'var(--color-accent)'},
+      {key:'plan',title:L.matrix.plan.t,tag:L.matrix.plan.tag,tagClass:'tag-neutral',hint:L.matrix.plan.hint,accent:'var(--color-neutral-700)'},
+      {key:'quick',title:L.matrix.quick.t,tag:L.matrix.quick.tag,tagClass:'tag-accent-2',hint:L.matrix.quick.hint,accent:'var(--color-accent-2-500)'},
+      {key:'later',title:L.matrix.later.t,tag:L.matrix.later.tag,tagClass:'tag-neutral',hint:L.matrix.later.hint,accent:'var(--color-neutral-400)'},
+    ];
+    const quadrants=qdefs.map(q=>{ const ts=open.filter(t=>this.quad(t).key===q.key&&tagOK(t)).map(t=>this.decorate(t)); return {...q,count:ts.length,empty:ts.length===0,tasks:ts}; });
+
+    // calendar July 2026 (compact grid + selected-day agenda)
+    const first=new Date(2026,6,1); const start=new Date(2026,6,1-first.getDay()); const todayISO=this.iso(this.today);
+    const calDays=[]; for(let i=0;i<42;i++){ const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i); const dISO=this.iso(d); const inM=d.getMonth()===6; const isT=dISO===todayISO; const isSel=dISO===S.calSel; const cnt=this.state.tasks.filter(t=>t.due===dISO).length;
+      calDays.push({ num:d.getDate(), iso:dISO, dot:cnt>0, dotColor:isSel?'var(--color-bg)':'var(--color-accent)',
+        bg:isSel?'var(--color-accent)':(isT?'var(--color-accent-100)':(inM?'var(--color-bg)':'var(--color-surface)')),
+        numColor:isSel?'var(--color-bg)':(isT?'var(--color-accent)':(inM?'var(--color-text)':'var(--color-neutral-400)')),
+        numWeight:(isT||isSel)?'800':'400', tap:()=>this.setState({calSel:dISO}) }); }
+    const selD=this.parse(S.calSel); const calSelLabel=selD.getDate()+' '+this.L.mon[selD.getMonth()]+' 2026';
+    const calSelTasks=this.state.tasks.filter(t=>t.due===S.calSel).map(t=>this.decorate(t));
+
+    // timeline mini (stacked project tracks)
+    const rS=this.parse('2026-05-01'), rE=this.parse('2026-12-31'); const tot=(rE-rS)/86400000;
+    const monthDefs=[[4,'พ.ค.',31],[5,'มิ.ย.',30],[6,'ก.ค.',31],[7,'ส.ค.',31],[8,'ก.ย.',30],[9,'ต.ค.',31],[10,'พ.ย.',30],[11,'ธ.ค.',31]];
+    let acc=0; const months=monthDefs.map(m=>{ const left=acc/tot*100; const w=m[2]/tot*100; acc+=m[2]; return {label:m[1],w,left}; });
+    const todayLeft=(this.today-rS)/86400000/tot*100;
+    const ganttRows=this.state.projects.map(p=>{ const ps=this.parse(p.start),pd=this.parse(p.due); const left=Math.max(0,(ps-rS)/86400000/tot*100); const width=Math.min(100-left,(pd-ps)/86400000/tot*100); const ts=this.state.tasks.filter(t=>t.p===p.id); const dn=ts.filter(t=>t.status==='Done').length; const pct=ts.length?Math.round(dn/ts.length*100):0; return {name:p.name,dot:p.dot,left,width,pct,pctLabel:pct+'%',rangeLabel:this.fmtShort(p.start)+' – '+this.fmtShort(p.due),go:()=>this.setState({view:'list',selId:null})}; });
+
+    // weekly time summary (last 7 days ending today)
+    const wl=S.weekLog; const wkBase=new Date(2026,6,6); const wkMax=Math.max(1,...wl);
+    const weekBars=wl.map((h,i)=>{ const d=new Date(2026,6,6+i); const isT=i===6; return {label:(S.lang==='en'?['Su','Mo','Tu','We','Th','Fr','Sa']:['อา','จ','อ','พ','พฤ','ศ','ส'])[d.getDay()], date:d.getDate(), hours:h, h:Math.round(h/wkMax*100), barColor:isT?'var(--color-accent)':'var(--color-neutral-700)', numColor:isT?'var(--color-accent)':'var(--color-neutral-700)', hLabel:(Math.round(h*10)/10)+'', isToday:isT }; });
+    const wkTotal=wl.reduce((a,b)=>a+b,0); const wkAvg=wkTotal/7;
+    let topI=0; wl.forEach((h,i)=>{ if(h>wl[topI])topI=i; });
+    const wkTop=weekBars[topI];
+    const hrU=S.lang==='en'?'h':'ชม';
+    const timeStats=[
+      {label:L.total_week,value:(Math.round(wkTotal*10)/10)+' '+hrU},
+      {label:L.avg_day,value:(Math.round(wkAvg*10)/10)+' '+hrU},
+      {label:L.top_day,value:wkTop.label+' '+wkTop.date},
+    ];
+    const projEffort=this.state.projects.map(p=>{ const ts=this.state.tasks.filter(t=>t.p===p.id); const sp=ts.reduce((a,t)=>a+t.spent,0); const es=ts.reduce((a,t)=>a+t.est,0); return {name:p.name,dot:p.dot,spent:sp,est:es,label:this.fmtHours(sp),estLabel:(S.lang==='en'?'of '+es+' h':'จาก '+es+' ชม')}; });
+    const effMax=Math.max(1,...projEffort.map(p=>p.spent));
+    projEffort.forEach(p=>{ p.w=Math.round(p.spent/effMax*100); });
+
+    let sel=null; if(S.selId){ const raw=this.state.tasks.find(t=>t.id===S.selId); if(raw){ const d=this.decorate(raw); const pr=this.proj(raw.p); const timePct=raw.est?Math.min(100,Math.round(raw.spent/raw.est*100)):0; sel={...d, desc:raw.desc, stack:pr?pr.stack:[], arch:pr?pr.arch:'', repo:pr?pr.repo:'', notes:pr?pr.notes:'', estLabel:raw.est+(S.lang==='en'?' h':' ชม'), spentLabel:raw.spent+(S.lang==='en'?' h':' ชม'), timePct, timeColor: raw.spent>raw.est?'var(--color-accent)':'var(--color-neutral-700)', log15:()=>this.logTime(raw.id,15), log60:()=>this.logTime(raw.id,60), log120:()=>this.logTime(raw.id,120),
+      subs: raw.subs.map((s,i)=>({t:s.t,done:s.d,strike:s.d?'line-through':'none',color:s.d?'var(--color-neutral-500)':'var(--color-text)',border:s.d?'var(--color-accent)':'var(--color-neutral-400)',bg:s.d?'var(--color-accent)':'transparent',toggle:()=>this.toggleSub(raw.id,i)})),
+      statuses: this.ORDER.map(st=>{ const act=raw.status===st; return {label:this.L.status[st],go:()=>this.setStatus(raw.id,st),border:act?'var(--color-accent)':'var(--color-divider)',bg:act?'var(--color-accent)':'transparent',color:act?'var(--color-bg)':'var(--color-text)'}; }),
+      tagOptions: this.TAGS.map(g=>{ const on=(raw.tags||[]).includes(g.id); return {label:g.label,on,toggle:()=>this.toggleTag(raw.id,g.id),border:on?'var(--color-accent)':'var(--color-divider)',bg:on?'var(--color-accent)':'transparent',color:on?'var(--color-bg)':'var(--color-neutral-700)'}; }),
+      assigneeInitials:(function(u){return u?self.initials(u.name):'?';})(this.state.users.find(u=>u.id===raw.assignee)), assigneeBg:(function(u){return u&&u.me?'var(--color-accent)':'var(--color-neutral-700)';})(this.state.users.find(u=>u.id===raw.assignee)), assigneeName:(function(u){return u?u.name:'ยังไม่มอบหมาย';})(this.state.users.find(u=>u.id===raw.assignee)), cycleAssignee:()=>{ const ids=this.state.users.map(u=>u.id); this.setAssignee(raw.id, ids[(ids.indexOf(raw.assignee)+1)%ids.length]); }, edit:()=>this.openEdit(raw.id), del:()=>this.deleteTask(raw.id) }; } }
+
+    const f=S.form;
+    const form={...f, urgentBorder:f.urgent?'var(--color-accent)':'var(--color-neutral-400)', urgentBg:f.urgent?'var(--color-accent)':'transparent', importantBorder:f.important?'var(--color-accent)':'var(--color-neutral-400)', importantBg:f.important?'var(--color-accent)':'transparent'};
+
+    const primaryTabs=tabs.slice(0,4);
+    const moreTabs=tabs.slice(4).map(t=>({...t, go:()=>this.setState({view:t.key,selId:null,showNotif:false,showMore:false})}));
+    const moreActive=['timeline','time','matrix','team'].includes(S.view);
+    return {
+      tabs, primaryTabs, moreTabs, moreActive, moreLabel:(S.lang==='en'?'More':'เพิ่มเติม'), moreColor:moreActive?'var(--color-accent)':'var(--color-neutral-600)',
+      showMore:S.showMore, openMore:()=>this.setState({showMore:true}), closeMore:()=>this.setState({showMore:false}),
+      viewTitle:titles[S.view], todayShort:(12+' '+L.mon[6]+' 2026'), L, lang:S.lang, langEN:S.lang==='en', langTH:S.lang==='th', setTH:()=>this.setState({lang:'th'}), setEN:()=>this.setState({lang:'en'}),
+      authed:S.authed, notAuthed:!S.authed, doLogin:()=>this.setState({authed:true}), membersText:(L.members_pre+this.state.users.length+L.members_post),
+      thBg:S.lang==='th'?'var(--color-accent)':'transparent', thColor:S.lang==='th'?'var(--color-bg)':'var(--color-text)', enBg:S.lang==='en'?'var(--color-accent)':'transparent', enColor:S.lang==='en'?'var(--color-bg)':'var(--color-text)',
+      lgThBg:S.lang==='th'?'#fff':'transparent', lgThColor:S.lang==='th'?'var(--color-accent)':'#fff', lgEnBg:S.lang==='en'?'#fff':'transparent', lgEnColor:S.lang==='en'?'var(--color-accent)':'#fff',
+      isDash:S.view==='dashboard', isList:S.view==='list', isKanban:S.view==='kanban', isMatrix:S.view==='matrix', isCal:S.view==='calendar', isTimeline:S.view==='timeline', isTime:S.view==='time', isTeam:S.view==='team',
+      teamUsers, teamCount:this.state.users.length,
+      showInvite:S.showInvite, openInvite:()=>this.setState({showInvite:true}), closeInvite:()=>this.setState({showInvite:false}), invite:S.invite,
+      setInviteName:(e)=>this.setState({invite:{...S.invite,name:e.target.value}}), setInviteEmail:(e)=>this.setState({invite:{...S.invite,email:e.target.value}}),
+      inviteRoleOpts:[{v:'member',l:L.role.member},{v:'viewer',l:L.role.viewer},{v:'admin',l:L.role.admin}].map(r=>({...r,on:S.invite.role===r.v,pick:()=>this.setState({invite:{...S.invite,role:r.v}}),border:S.invite.role===r.v?'var(--color-accent)':'var(--color-divider)',bg:S.invite.role===r.v?'var(--color-accent)':'transparent',color:S.invite.role===r.v?'var(--color-bg)':'var(--color-neutral-700)'})),
+      submitInvite:()=>{ const iv=this.state.invite; if(!iv.name.trim())return; const id='u'+Date.now(); const nu={id,name:iv.name.trim(),email:iv.email.trim()||'—',role:iv.role,status:'invited'}; this.setState(s=>({users:s.users.concat([nu]),showInvite:false,invite:{name:'',email:'',role:'member'}})); },
+      weekBars, timeStats, projEffort,
+      stats, todayFocus:focus, noFocus:focus.length===0, projectProgress, listGroups, kanbanCols, quadrants,
+      showTagBar:(S.view==='list'||S.view==='kanban'||S.view==='matrix'), tagFilterActive:!!S.tagFilter, clearTag:()=>this.setState({tagFilter:null}),
+      anyFilterActive:!!(S.tagFilter||S.assigneeFilter), clearFilters:()=>this.setState({tagFilter:null,assigneeFilter:null}),
+      assigneeBar: this.state.users.map(u=>{ const on=S.assigneeFilter===u.id; return {name:u.name,initials:this.initials(u.name),on,toggle:()=>this.setState({assigneeFilter:on?null:u.id}),avatarBg:u.me?'var(--color-accent)':'var(--color-neutral-700)',border:on?'var(--color-accent)':'var(--color-divider)',bg:on?'var(--color-accent-100)':'transparent',color:on?'var(--color-accent-700)':'var(--color-text)'}; }),
+      tagBar: this.TAGS.map(g=>{ const on=S.tagFilter===g.id; return {label:g.label,on,toggle:()=>this.setState({tagFilter:on?null:g.id}),border:on?'var(--color-accent)':'var(--color-divider)',bg:on?'var(--color-accent)':'transparent',color:on?'var(--color-bg)':'var(--color-neutral-700)'}; }),
+      weekdays:(S.lang==='en'?['Su','Mo','Tu','We','Th','Fr','Sa']:['อา','จ','อ','พ','พฤ','ศ','ส']), calDays, calTitle:(S.lang==='en'?'July 2026':'กรกฎาคม 2026'), calSelLabel, calSelTasks, noCalTasks:calSelTasks.length===0,
+      months, ganttRows, todayLeft,
+      overdueCount:overdue.length, hasOverdue:overdue.length>0, overdueTasks:overdue.slice().sort((a,b)=>this.parse(a.due)-this.parse(b.due)).map(t=>this.decorate(t)),
+      showNotif:S.showNotif, toggleNotif:()=>this.setState({showNotif:!S.showNotif}), closeNotif:()=>this.setState({showNotif:false}),
+      selOpen:!!sel, sel, closeTask:()=>this.setState({selId:null}),
+      projects:this.state.projects, showAdd:S.showAdd, openAdd:()=>this.setState({showAdd:true,editId:null,form:{title:'',projectId:'p1',due:'',status:'To Do',urgent:false,important:true,tags:[]}}), closeAdd:()=>this.setState({showAdd:false,editId:null}), form,
+      dialogTitle:(S.editId?(S.lang==='en'?'Edit task':'แก้ไขงาน'):L.add_task_new), submitLabel:(S.editId?(S.lang==='en'?'Save':'บันทึก'):L.add_task), submitIcon:(S.editId?'check':'plus'),
+      setFormTitle:(e)=>this.setState({form:{...S.form,title:e.target.value}}),
+      setFormProject:(e)=>this.setState({form:{...S.form,projectId:e.target.value}}),
+      setFormDue:(e)=>this.setState({form:{...S.form,due:e.target.value}}),
+      toggleUrgent:()=>this.setState({form:{...S.form,urgent:!S.form.urgent}}),
+      toggleImportant:()=>this.setState({form:{...S.form,important:!S.form.important}}),
+      formTags: this.TAGS.map(g=>{ const on=S.form.tags.includes(g.id); return {label:g.label,on,toggle:()=>this.setState(st=>({form:{...st.form,tags:on?st.form.tags.filter(x=>x!==g.id):st.form.tags.concat([g.id])}})),border:on?'var(--color-accent)':'var(--color-divider)',bg:on?'var(--color-accent)':'transparent',color:on?'var(--color-bg)':'var(--color-neutral-700)'}; }),
+      submitAdd:()=>{ const f2=this.state.form; if(!f2.title.trim())return; const eid=this.state.editId; if(eid){ this.setState(s=>({tasks:s.tasks.map(t=>t.id===eid?{...t,title:f2.title.trim(),p:f2.projectId,due:f2.due||null,status:f2.status,imp:f2.important,urg:f2.urgent,tags:f2.tags.slice()}:t),showAdd:false,editId:null})); return; } const id='t'+Date.now(); const nt={id,p:f2.projectId,title:f2.title.trim(),status:f2.status,imp:f2.important,urg:f2.urgent,due:f2.due||null,est:0,spent:0,desc:'',subs:[],tags:f2.tags.slice()}; this.setState(s=>({tasks:s.tasks.concat([nt]),showAdd:false,form:{title:'',projectId:f2.projectId,due:'',status:'To Do',urgent:false,important:true,tags:[]},selId:id})); },
+    };
+  }
+}
+</script>
+</body>
+</html>
