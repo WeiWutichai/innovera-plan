@@ -86,6 +86,19 @@ The UI never talks to the database directly — it goes through `src/lib/api.ts`
 - **Dev** uses SQLite (`prisma/dev.db`). **Production**: change the `datasource` provider in `prisma/schema.prisma` to `postgresql` and point `DATABASE_URL` at Postgres — the models are portable (`stack` / `subs` / `tags` are stored as JSON strings). Then `npx prisma migrate deploy` + `npm run db:seed`.
 - The repository's method signatures and return DTOs are the API contract; the entire client is written against them, so the storage engine can change underneath without touching anything above `store.ts`.
 
+## Docker
+
+The image is self-contained — it bakes a seeded SQLite database in as a template and restores it into a data volume on first boot, so it runs with zero setup:
+
+```bash
+docker compose up --build          # → http://localhost:3000  (data persists in a volume)
+# or without compose:
+docker build -t innovera-plan .
+docker run -p 3000:3000 innovera-plan
+```
+
+Built as a Next.js **standalone** server (multi-stage build, non-root user, ~640 MB). To run against **Postgres** instead of the baked SQLite, switch the datasource provider in `prisma/schema.prisma`, point `DATABASE_URL` at Postgres, and run `prisma migrate deploy` + `npm run db:seed` in your pipeline — see the commented service in `docker-compose.yml`.
+
 ## Design system
 
 Styling follows **Modernist** (see `project/_ds/…/readme.md`): flat, Archivo type, a single red accent (`#ec3013`), zero corner radius, 2px dividers, flush-left labels. All colour/space/shadow values come from CSS tokens in `src/app/modernist.css`. The only change from the original stylesheet is the font tokens, which add a Thai fallback (`Noto Sans Thai`) since Archivo has no Thai glyphs.

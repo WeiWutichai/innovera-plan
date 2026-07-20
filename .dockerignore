@@ -1,0 +1,27 @@
+# build artifacts & deps (reinstalled/rebuilt in the image)
+node_modules
+.next
+out
+
+# vcs & tooling
+.git
+.gitignore
+.claude
+
+# env & local db (baked separately in the build)
+.env
+.env*.local
+prisma/*.db
+prisma/*.db-journal
+
+# design source / reference (not needed at runtime)
+project
+.design-source
+
+# docs & misc
+*.md
+.DS_Store
+npm-debug.log*
+Dockerfile
+.dockerignore
+docker-compose.yml

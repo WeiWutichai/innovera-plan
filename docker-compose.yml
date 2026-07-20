@@ -1,0 +1,43 @@
+# Run the app with the baked SQLite database (zero setup):
+#   docker compose up --build
+# The db lives in the `innovera-data` volume, so data survives restarts.
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "file:/app/data/dev.db"
+    volumes:
+      - innovera-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  innovera-data:
+
+# ── Production with Postgres (optional) ──────────────────────────────────────
+# To run against Postgres instead of the baked SQLite:
+#   1. set  datasource db { provider = "postgresql" }  in prisma/schema.prisma
+#   2. uncomment the `db` service below and add to `app`:
+#        depends_on: { db: { condition: service_healthy } }
+#        environment.DATABASE_URL: "postgresql://innovera:innovera@db:5432/innovera?schema=public"
+#   3. the entrypoint does NOT auto-seed Postgres — run
+#        `npx prisma migrate deploy` + `npm run db:seed`  in your pipeline.
+#
+#   db:
+#     image: postgres:16-alpine
+#     environment:
+#       POSTGRES_USER: innovera
+#       POSTGRES_PASSWORD: innovera
+#       POSTGRES_DB: innovera
+#     volumes:
+#       - pg-data:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U innovera"]
+#       interval: 5s
+#       timeout: 3s
+#       retries: 10
+#
+# volumes:
+#   pg-data:
