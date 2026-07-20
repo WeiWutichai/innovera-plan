@@ -14,13 +14,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "email and password required" }, { status: 400 });
   }
 
-  const user = await getStore().verifyCredentials(email, password);
-  if (!user) {
+  const result = await getStore().verifyCredentials(email, password);
+  if (!result) {
     return NextResponse.json({ error: "invalid credentials" }, { status: 401 });
   }
 
-  const token = await createSessionToken(user.id);
-  const res = NextResponse.json({ user });
+  const token = await createSessionToken(result.user.id, result.sessionVersion);
+  const res = NextResponse.json({ user: result.user });
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
   return res;
 }

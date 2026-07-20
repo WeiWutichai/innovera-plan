@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { getStore } from "@/server/store";
-import { getSessionUserId } from "@/server/session";
+import { currentUser, unauthorized } from "@/server/guard";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/auth/me → the current user, or 401.
+// GET /api/auth/me → the current user, or 401 (also enforces session-version
+// revocation via currentUser).
 export async function GET(req: Request) {
-  const userId = await getSessionUserId(req);
-  if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-  const user = await getStore().getUser(userId);
-  if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-  return NextResponse.json({ user });
+  const me = await currentUser(req);
+  if (!me) return unauthorized();
+  return NextResponse.json({ user: me });
 }

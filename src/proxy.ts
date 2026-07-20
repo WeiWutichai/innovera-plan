@@ -10,8 +10,11 @@ export async function proxy(req: NextRequest) {
   if (req.nextUrl.pathname.startsWith("/api/auth")) {
     return NextResponse.next();
   }
-  const userId = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
-  if (!userId) {
+  // First-line check: valid signature + not expired. The authoritative
+  // revocation check (session version, disabled account) runs in the Node route
+  // handlers via server/guard.ts, where Prisma is available.
+  const claims = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
+  if (!claims) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
   return NextResponse.next();

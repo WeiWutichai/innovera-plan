@@ -31,7 +31,7 @@ export type { CreateTaskInput, EditTaskInput, InviteInput } from "@/lib/types";
 // Prisma row types (structural).
 type ProjectRow = { id: string; name: string; dot: string; start: string; due: string; stack: string; arch: string; repo: string; notes: string };
 type TaskRow = { id: string; p: string; title: string; status: string; imp: boolean; urg: boolean; due: string | null; est: number; spent: number; desc: string; subs: string; tags: string; assignee: string };
-type UserRow = { id: string; name: string; email: string; password: string; role: string; status: string; me: boolean };
+type UserRow = { id: string; name: string; email: string; password: string; role: string; status: string; me: boolean; sessionVersion: number };
 type TagRow = { id: string; label: string };
 type ActivityRow = { actor: string; type: string; ts: number; title: string | null; status: string | null; amount: string | null; name: string | null; role: string | null };
 
@@ -94,7 +94,7 @@ async function nextOrd(model: "task" | "user"): Promise<number> {
 
 const repo = {
   // ── auth ────────────────────────────────────────────────────────────────────
-  async verifyCredentials(email: string, password: string): Promise<User | null> {
+  async verifyCredentials(email: string, password: string): Promise<{ user: User; sessionVersion: number } | null> {
     const row = await prisma.user.findUnique({ where: { email } });
     // Only active accounts can sign in (invited/disabled cannot). Always run a
     // bcrypt compare — against a dummy hash when there's no eligible user — so
@@ -102,15 +102,23 @@ const repo = {
     const active = !!row && row.status === "active";
     const ok = await verifyPassword(password, active ? row!.password : DUMMY_HASH);
     if (!active || !ok) return null;
-    return toUser(row!, row!.id);
+    return { user: toUser(row!, row!.id), sessionVersion: row!.sessionVersion };
   },
 
-  // Used to resolve the current session user; a disabled/deleted account
-  // resolves to null so an already-issued token stops working immediately.
-  async getUser(id: string): Promise<User | null> {
-    const row = await prisma.user.findUnique({ where: { id } });
-    if (!row || row.status === "disabled") return null;
+  /**
+   * Resolve the user a session token belongs to. Returns null when the account
+   * is missing, disabled, or the token's version is stale (revoked) — so a
+   * leaked/old token stops working immediately, not only after it expires.
+   */
+  async resolveSession(userId: string, sv: number): Promise<User | null> {
+    const row = await prisma.user.findUnique({ where: { id: userId } });
+    if (!row || row.status === "disabled" || row.sessionVersion !== sv) return null;
     return toUser(row, row.id);
+  },
+
+  /** Invalidate every already-issued session for a user. */
+  async bumpSessionVersion(userId: string): Promise<void> {
+    await prisma.user.updateMany({ where: { id: userId }, data: { sessionVersion: { increment: 1 } } });
   },
 
   async bootstrap(currentUserId: string): Promise<Bootstrap> {
@@ -262,16 +270,21 @@ const repo = {
 
   async setUserStatus(id: string, status: UserStatus, actor: string): Promise<{ user: User } | null> {
     if (!(await prisma.user.findUnique({ where: { id } }))) return null;
-    const row = await prisma.user.update({ where: { id }, data: { status } });
+    // Disabling also revokes the user's live sessions.
+    const data = status === "disabled" ? { status, sessionVersion: { increment: 1 } } : { status };
+    const row = await prisma.user.update({ where: { id }, data });
     return { user: toUser(row, actor) };
   },
 
   async resetPassword(id: string, actor: string): Promise<{ activity: Activity; user: User } | null> {
     const u = await prisma.user.findUnique({ where: { id } });
     if (!u) return null;
-    // Actually invalidate the current credential (set a fresh random hash). In a
-    // real deployment this pairs with a one-time reset link delivered to the user.
-    await prisma.user.update({ where: { id }, data: { password: await hashPassword(newId("pw") + newId("pw")) } });
+    // Invalidate the current credential (fresh random hash) AND revoke live
+    // sessions. In a real deployment this pairs with a one-time reset link.
+    await prisma.user.update({
+      where: { id },
+      data: { password: await hashPassword(newId("pw") + newId("pw")), sessionVersion: { increment: 1 } },
+    });
     const activity = await log(actor, "reset", { name: u.name });
     return { activity, user: toUser(u, actor) };
   },
