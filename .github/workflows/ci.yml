@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      # CI-only, never used in production. Tests set their own via vitest.config.
+      DATABASE_URL: "file:./prisma/ci.db"
+      AUTH_SECRET: "ci-only-secret-not-used-anywhere-1234567890abcd"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci # postinstall runs `prisma generate`
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test # vitest provisions its own throwaway SQLite DB
+
+      - name: Build
+        run: npm run build

@@ -1,5 +1,7 @@
 # INNOVERA PLAN — Work Planner (ระบบแผนและจัดการงาน)
 
+[![CI](https://github.com/WeiWutichai/innovera-plan/actions/workflows/ci.yml/badge.svg)](https://github.com/WeiWutichai/innovera-plan/actions/workflows/ci.yml)
+
 A bilingual (ไทย / English) project & task-management app, built with **Next.js (App Router) + TypeScript**. It is a faithful implementation of the Claude Design handoff in [`project/`](project/) — both the **desktop** (`Work Planner.dc.html`) and the **mobile** (`Work Planner Mobile.dc.html`) designs — on top of a real backend/API data layer.
 
 > The original design prototypes and the Modernist design system live in [`project/`](project/) (the Claude Design handoff bundle) and are the source of truth for the look and behaviour.
