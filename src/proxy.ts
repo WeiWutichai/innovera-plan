@@ -7,7 +7,10 @@ import { SESSION_COOKIE, verifySessionToken } from "@/server/session";
 // get a 401 before they ever reach a handler, so the backend is genuinely
 // protected — not just the UI.
 export async function proxy(req: NextRequest) {
-  if (req.nextUrl.pathname.startsWith("/api/auth")) {
+  const { pathname } = req.nextUrl;
+  // Auth endpoints are public; /api/test is the E2E reset helper (a no-op /
+  // 404 unless E2E=1, so it is inert in production).
+  if (pathname.startsWith("/api/auth") || pathname.startsWith("/api/test")) {
     return NextResponse.next();
   }
   // First-line check: valid signature + not expired. The authoritative

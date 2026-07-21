@@ -31,6 +31,8 @@ npm run db:studio  # browse the DB in Prisma Studio
 
 `npm test` runs [Vitest](https://vitest.dev): **unit** tests for the pure logic (dates, `quad`/`dueInfo`/`decorate`, selectors, i18n key-parity) and **integration** tests that exercise the Prisma-backed store, the auth logic (credentials, session-version revocation, change-password, invite/accept), and the route handlers' authz (admin-only, 401/403) against a throwaway SQLite DB (`prisma/test.db`, provisioned fresh in `tests/global-setup.ts`). ~56 tests.
 
+`npm run test:e2e` runs [Playwright](https://playwright.dev) against a production build on its own port + `prisma/e2e.db`: login/logout, view navigation, TH/EN toggle, task drawer + create, change-password, the full invite → accept flow, and the mobile shell. A per-test reset uses `POST /api/test/reset` (gated behind `E2E=1`, so it 404s in production). Both suites run in CI.
+
 The app is calibrated to a fixed "today" of **2026-07-12** so the seeded due dates, calendar and timeline read exactly as designed.
 
 ### Authentication
