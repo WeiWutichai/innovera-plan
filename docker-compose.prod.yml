@@ -1,0 +1,81 @@
+# Production stack: Postgres + the app + Caddy (auto-HTTPS).
+#
+# On the server:
+#   cat > .env <<EOF
+#   POSTGRES_PASSWORD=$(openssl rand -hex 16)
+#   AUTH_SECRET=$(openssl rand -hex 32)
+#   DOMAIN=innoplan.innoveraappcenter.com
+#   EOF
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Point the domain's A record at the server first (Caddy needs it to issue TLS).
+
+name: innovera
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: innovera
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: innovera
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U innovera -d innovera"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # One-shot: sync the schema and seed once (idempotent — never wipes live data).
+  migrate:
+    build:
+      context: .
+      target: builder
+      args:
+        DATABASE_PROVIDER: postgresql
+    environment:
+      DATABASE_URL: "postgresql://innovera:${POSTGRES_PASSWORD}@db:5432/innovera?schema=public"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npx prisma db push --skip-generate && npx tsx prisma/seed-if-empty.ts"
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      args:
+        DATABASE_PROVIDER: postgresql
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "postgresql://innovera:${POSTGRES_PASSWORD}@db:5432/innovera?schema=public"
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

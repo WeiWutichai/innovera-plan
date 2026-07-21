@@ -14,18 +14,30 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma
 RUN npm ci
 
-# ── builder: generate client, build, and bake a seeded SQLite template ───────
+# ── builder: generate client, build, and (for sqlite) bake a seeded template ──
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 ENV NEXT_TELEMETRY_DISABLED=1
+# "sqlite" (default) keeps the zero-setup demo image; "postgresql" swaps the
+# datasource provider for a real Postgres deployment (see docker-compose.prod.yml).
+ARG DATABASE_PROVIDER=sqlite
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN if [ "$DATABASE_PROVIDER" = "postgresql" ]; then \
+      sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma; \
+    fi
 RUN npx prisma generate
 RUN npm run build
-# create the seed template DB (prisma/seed.db)
-RUN DATABASE_URL="file:/app/prisma/seed.db" npx prisma db push --skip-generate \
- && DATABASE_URL="file:/app/prisma/seed.db" npx tsx prisma/seed.ts
+# For sqlite, bake a seeded template DB (prisma/seed.db) the entrypoint restores.
+# For postgres, seeding is done once by the compose `migrate` service; just leave
+# an empty placeholder so the runner COPY below succeeds.
+RUN if [ "$DATABASE_PROVIDER" = "postgresql" ]; then \
+      touch /app/prisma/seed.db; \
+    else \
+      DATABASE_URL="file:/app/prisma/seed.db" npx prisma db push --skip-generate && \
+      DATABASE_URL="file:/app/prisma/seed.db" npx tsx prisma/seed.ts; \
+    fi
 
 # ── runner: minimal standalone server ────────────────────────────────────────
 FROM node:20-bookworm-slim AS runner

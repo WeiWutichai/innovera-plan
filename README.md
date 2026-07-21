@@ -118,7 +118,24 @@ docker build -t innovera-plan .
 docker run -p 3000:3000 -e AUTH_SECRET=$(openssl rand -hex 32) innovera-plan
 ```
 
-Built as a Next.js **standalone** server (multi-stage build, non-root user, ~640 MB). To run against **Postgres** instead of the baked SQLite, switch the datasource provider in `prisma/schema.prisma`, point `DATABASE_URL` at Postgres, and run `prisma migrate deploy` + `npm run db:seed` in your pipeline — see the commented service in `docker-compose.yml`.
+Built as a Next.js **standalone** server (multi-stage build, non-root user, ~640 MB).
+
+### Production (Postgres + Caddy auto-HTTPS)
+
+`docker-compose.prod.yml` runs the full stack — **Postgres + the app + Caddy** (automatic Let's Encrypt TLS) — without changing the repo's SQLite default (dev/test/CI stay on SQLite). The app image is built with `--build-arg DATABASE_PROVIDER=postgresql`, which swaps the Prisma datasource provider; a one-shot `migrate` service runs `prisma db push` + seeds the DB **only if empty** (redeploys never wipe data).
+
+Point the domain's DNS **A record** at the server, then:
+
+```bash
+cat > .env <<EOF
+POSTGRES_PASSWORD=$(openssl rand -hex 16)
+AUTH_SECRET=$(openssl rand -hex 32)
+DOMAIN=innoplan.example.com
+EOF
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Caddy obtains a certificate for `$DOMAIN` and reverse-proxies to the app. First sign-in: `thanakorn@acme.co` / `password` — then change it in-app.
 
 ## Design system
 

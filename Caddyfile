@@ -1,0 +1,5 @@
+# Caddy automatically obtains + renews a Let's Encrypt certificate for $DOMAIN
+# and reverse-proxies to the app container. Set DOMAIN in .env.
+{$DOMAIN} {
+	reverse_proxy app:3000
+}
