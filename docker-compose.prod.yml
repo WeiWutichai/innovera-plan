@@ -57,17 +57,24 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-    expose:
-      - "3000"
+    # Published on localhost only — your existing gateway/reverse-proxy points at
+    # http://127.0.0.1:${APP_PORT}. Pick a free port via APP_PORT in .env.
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
 
+  # Optional bundled reverse proxy — ONLY when this stack owns ports 80/443.
+  # Skip it (the default) when a shared gateway already fronts the server:
+  #   run everything except caddy → `docker compose -f docker-compose.prod.yml up -d`
+  #   run WITH caddy            → add `--profile standalone`
   caddy:
     image: caddy:2-alpine
+    profiles: ["standalone"]
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     environment:
-      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      DOMAIN: ${DOMAIN:-} # set in .env only when using the `standalone` profile
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
