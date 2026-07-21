@@ -8,6 +8,7 @@
 // request body, so a client cannot spoof who it is.
 // ─────────────────────────────────────────────────────────────────────────
 
+import { createHash, randomBytes } from "crypto";
 import { prisma } from "./db";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "./auth";
 import { STATUS_ORDER } from "@/lib/types";
@@ -67,6 +68,9 @@ function toActivity(r: ActivityRow): Activity {
 function newId(prefix: string): string {
   return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
+
+const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const hashToken = (raw: string) => createHash("sha256").update(raw).digest("hex");
 
 async function log(actor: string, type: Activity["type"], data: Partial<Activity> = {}): Promise<Activity> {
   const row = await prisma.activity.create({
@@ -258,23 +262,51 @@ const repo = {
   },
 
   // ── user mutations ─────────────────────────────────────────────────────────
-  async inviteUser(input: InviteInput, actor: string): Promise<{ user: User; activity: Activity }> {
-    // Invited users get a random (unusable) password and status "invited", so
-    // they cannot be logged into until a real activation/set-password flow runs.
+  async inviteUser(input: InviteInput, actor: string): Promise<{ user: User; activity: Activity; inviteToken: string }> {
+    // Invited users get a random (unusable) password and status "invited"; they
+    // activate by accepting the invite (setting their own password) via a
+    // one-time token whose sha256 hash + expiry are stored here.
+    const rawToken = randomBytes(32).toString("hex");
     const row = await prisma.user.create({
       data: {
         id: newId("u"),
         ord: await nextOrd("user"),
         name: input.name.trim(),
-        email: input.email.trim() || newId("invite") + "@acme.co",
+        email: (input.email.trim() || newId("invite") + "@acme.co").toLowerCase(),
         password: await hashPassword(newId("pw") + newId("pw")),
         role: input.role,
         status: "invited",
         me: false,
+        inviteToken: hashToken(rawToken),
+        inviteExpires: Date.now() + INVITE_TTL_MS,
       },
     });
     const activity = await log(actor, "invite", { name: row.name });
-    return { user: toUser(row, actor), activity };
+    return { user: toUser(row, actor), activity, inviteToken: rawToken };
+  },
+
+  /** Look up a pending invite by its raw token (for the accept page). */
+  async getInvite(rawToken: string): Promise<{ name: string; email: string } | null> {
+    const row = await prisma.user.findFirst({ where: { inviteToken: hashToken(rawToken), status: "invited" } });
+    if (!row || !row.inviteExpires || row.inviteExpires < Date.now()) return null;
+    return { name: row.name, email: row.email };
+  },
+
+  /** Accept an invite: set the password, activate the account, consume the token. */
+  async acceptInvite(rawToken: string, password: string): Promise<{ user: User; sessionVersion: number } | null> {
+    const row = await prisma.user.findFirst({ where: { inviteToken: hashToken(rawToken), status: "invited" } });
+    if (!row || !row.inviteExpires || row.inviteExpires < Date.now()) return null;
+    const updated = await prisma.user.update({
+      where: { id: row.id },
+      data: {
+        password: await hashPassword(password),
+        status: "active",
+        inviteToken: null,
+        inviteExpires: null,
+        sessionVersion: { increment: 1 },
+      },
+    });
+    return { user: toUser(updated, updated.id), sessionVersion: updated.sessionVersion };
   },
 
   async setRole(id: string, role: Role, actor: string): Promise<{ user: User; activity: Activity } | null> {

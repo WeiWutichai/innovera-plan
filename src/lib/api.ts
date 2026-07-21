@@ -74,6 +74,22 @@ export const api = {
       const e = (await res.json().catch(() => ({}))) as { error?: string };
       return { ok: false, error: e.error || "failed" };
     },
+    getInvite: async (token: string): Promise<{ name: string; email: string } | null> => {
+      const res = await fetch(`/api/auth/invite?token=${encodeURIComponent(token)}`, { cache: "no-store" });
+      if (!res.ok) return null;
+      const j = (await res.json()) as { invite: { name: string; email: string } };
+      return j.invite;
+    },
+    acceptInvite: async (token: string, password: string): Promise<{ ok: boolean; error?: string }> => {
+      const res = await fetch("/api/auth/accept-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
+      if (res.ok) return { ok: true };
+      const e = (await res.json().catch(() => ({}))) as { error?: string };
+      return { ok: false, error: e.error || "failed" };
+    },
   },
 
   // tasks
@@ -101,7 +117,7 @@ export const api = {
 
   // users
   inviteUser: (input: InviteInput) =>
-    req<{ user: User; activity: Activity }>("/api/users", {
+    req<{ user: User; activity: Activity; inviteToken: string }>("/api/users", {
       method: "POST",
       body: JSON.stringify(input),
     }),

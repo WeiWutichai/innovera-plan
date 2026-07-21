@@ -52,6 +52,8 @@ interface State {
   editId: string | null;
   showInvite: boolean;
   showChangePassword: boolean;
+  /** The accept-invite link to show the admin after a successful invite. */
+  inviteLink: string | null;
   lang: Lang;
   authed: boolean;
   currentUserId: string | null;
@@ -94,6 +96,7 @@ const initialState: State = {
   editId: null,
   showInvite: false,
   showChangePassword: false,
+  inviteLink: null,
   lang: "th",
   authed: false,
   currentUserId: null,
@@ -211,6 +214,7 @@ export interface PlannerActions {
   deleteTask: (id: string) => Promise<void>;
   // user mutations
   submitInvite: () => Promise<void>;
+  clearInviteLink: () => void;
   cycleRole: (id: string) => Promise<void>;
   toggleUserStatus: (id: string, next: UserStatus) => Promise<void>;
   resetPassword: (id: string) => Promise<void>;
@@ -484,11 +488,13 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
           const res = await api.inviteUser(iv);
           dispatch({ type: "UPSERT_USER", user: res.user });
           dispatch({ type: "PREPEND_ACTIVITY", entry: res.activity });
-          ui({ showInvite: false, invite: { name: "", email: "", role: "member" } });
+          const link = `${window.location.origin}/accept-invite?token=${res.inviteToken}`;
+          ui({ showInvite: false, invite: { name: "", email: "", role: "member" }, inviteLink: link });
         } catch {
           rollback();
         }
       },
+      clearInviteLink: () => ui({ inviteLink: null }),
       cycleRole: async (id) => {
         const u = stateRef.current.users.find((x) => x.id === id);
         if (!u) return;

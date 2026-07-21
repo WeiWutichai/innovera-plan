@@ -32,6 +32,8 @@ Real credential auth: bcrypt-hashed passwords, a signed (JWS/HS256) httpOnly ses
 
 Tokens carry a `sessionVersion`, so **logout, password reset, and disabling an account revoke already-issued tokens immediately** (not only on expiry). Signed-in users can **change their own password** (revokes their other sessions but keeps the current one). User-management actions (roles, disable, invite, reset) are **admin-only**, enforced server-side.
 
+Inviting a user creates a **one-time invite link** (`/accept-invite?token=…`, sha256-hashed + 7-day expiry). The invitee opens it, sets their own password, and is activated and signed in — so invited accounts have no shared/guessable password. Without email delivery the admin copies the link from the dialog shown after inviting.
+
 ## What's inside
 
 Eight views, fully bilingual, backed by a REST-ish API:

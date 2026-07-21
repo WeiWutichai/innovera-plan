@@ -13,6 +13,7 @@ import { AddSheet, InviteSheet } from "./AddSheet";
 import { NotifSheet } from "./NotifSheet";
 import { MobileLogin } from "./MobileLogin";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { Toast } from "@/components/Toast";
 import {
   MCalendar,
@@ -57,6 +58,7 @@ export function MobileShell() {
       <AddSheet />
       <InviteSheet />
       <ChangePasswordDialog />
+      <InviteLinkDialog />
       {!state.authed && <MobileLogin />}
       <Toast />
     </div>

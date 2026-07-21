@@ -39,7 +39,13 @@ model User {
   // Bumped on logout / password-reset / disable to revoke already-issued
   // session tokens (each token carries the version it was minted at).
   sessionVersion Int     @default(0)
+  // One-time invite acceptance: sha256 hash of the raw token + its expiry
+  // (epoch ms). Cleared once the invite is accepted.
+  inviteToken    String?
+  inviteExpires  Float?
   tasks          Task[]  @relation("TaskAssignee")
+
+  @@index([inviteToken])
 }
 
 model Tag {

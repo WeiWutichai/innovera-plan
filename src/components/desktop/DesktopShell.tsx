@@ -9,6 +9,7 @@ import { AddTaskDialog } from "./AddTaskDialog";
 import { InviteDialog } from "./InviteDialog";
 import { LoginScreen } from "./LoginScreen";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { Toast } from "@/components/Toast";
 import {
   ActivityView,
@@ -54,6 +55,7 @@ export function DesktopShell() {
       <AddTaskDialog />
       <InviteDialog />
       <ChangePasswordDialog />
+      <InviteLinkDialog />
       {!state.authed && <LoginScreen />}
       <Toast />
     </div>

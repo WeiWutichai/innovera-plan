@@ -158,6 +158,17 @@ export interface Dict {
   cp_err_short: string;
   cp_err_mismatch: string;
 
+  inv_link_title: string;
+  inv_link_desc: string;
+  inv_copy: string;
+  inv_copied: string;
+  done: string;
+  acc_title: string;
+  acc_desc: string;
+  acc_submit: string;
+  acc_invalid: string;
+  acc_loading: string;
+
   activity_h: string;
   activity_sub: string;
 }
@@ -358,6 +369,17 @@ export const th: Dict = {
   cp_err_short: "รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร",
   cp_err_mismatch: "รหัสผ่านใหม่ไม่ตรงกัน",
 
+  inv_link_title: "ลิงก์คำเชิญ",
+  inv_link_desc: "ส่งลิงก์นี้ให้ผู้ที่คุณเชิญ เพื่อตั้งรหัสผ่านและเข้าใช้งาน (ลิงก์หมดอายุใน 7 วัน)",
+  inv_copy: "คัดลอกลิงก์",
+  inv_copied: "คัดลอกแล้ว",
+  done: "เสร็จสิ้น",
+  acc_title: "ตั้งรหัสผ่าน",
+  acc_desc: "ตั้งรหัสผ่านเพื่อเปิดใช้งานบัญชีของคุณ",
+  acc_submit: "ตั้งรหัสผ่านและเข้าใช้งาน",
+  acc_invalid: "ลิงก์คำเชิญไม่ถูกต้องหรือหมดอายุแล้ว",
+  acc_loading: "กำลังตรวจสอบ…",
+
   activity_h: "บันทึกกิจกรรม",
   activity_sub: "กิจกรรมล่าสุดทั้งหมด",
 };
@@ -554,6 +576,17 @@ export const en: Dict = {
   cp_err_current: "Current password is incorrect",
   cp_err_short: "New password must be at least 8 characters",
   cp_err_mismatch: "New passwords don't match",
+
+  inv_link_title: "Invite link",
+  inv_link_desc: "Send this link to the person you invited so they can set a password and sign in (expires in 7 days).",
+  inv_copy: "Copy link",
+  inv_copied: "Copied",
+  done: "Done",
+  acc_title: "Set your password",
+  acc_desc: "Set a password to activate your account.",
+  acc_submit: "Set password & sign in",
+  acc_invalid: "This invite link is invalid or has expired.",
+  acc_loading: "Checking…",
 
   activity_h: "Activity",
   activity_sub: "Recent activity across the workspace",
