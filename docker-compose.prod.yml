@@ -1,16 +1,18 @@
-# Production stack: Postgres + the app + Caddy (auto-HTTPS).
+# Production stack: Postgres + the app. Fronted by an existing shared gateway by
+# default (the app publishes on 127.0.0.1:${APP_PORT}); add `--profile standalone`
+# to also run a bundled Caddy that owns 80/443.
 #
 # On the server:
 #   cat > .env <<EOF
 #   POSTGRES_PASSWORD=$(openssl rand -hex 16)
 #   AUTH_SECRET=$(openssl rand -hex 32)
-#   DOMAIN=innoplan.innoveraappcenter.com
+#   APP_PORT=3001              # a free host port your gateway proxies to
+#   # DOMAIN=innoplan.example.com   # only needed with `--profile standalone`
 #   EOF
 #   docker compose -f docker-compose.prod.yml up -d --build
-#
-# Point the domain's A record at the server first (Caddy needs it to issue TLS).
 
-name: innovera
+# Unique project name so it never collides with other stacks on the host.
+name: innoplan
 
 services:
   db:
