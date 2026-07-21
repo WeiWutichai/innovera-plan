@@ -32,11 +32,12 @@ npm run lint       # next lint
 npm run db:push    # apply prisma/schema.prisma to the SQLite dev DB
 npm run db:seed    # wipe + reload demo data (prisma/seed.ts)
 npm run db:studio  # browse the DB
+npm test           # vitest (unit + integration; uses its own prisma/test.db)
 ```
 
 First-time setup: `npm install` (auto-runs `prisma generate`) → `npm run db:push` → `npm run db:seed`.
 
-There is no unit-test suite yet; verify by `npm run typecheck` + `npm run build`, and (when asked) by loading the app in a browser.
+Verify changes with `npm run typecheck` + `npm test` + `npm run build`, and (when asked) by loading the app in a browser. Tests live in `tests/` (unit = pure logic; integration = store/auth/routes against a throwaway SQLite DB provisioned in `tests/global-setup.ts`); the shared seed logic is `src/server/seed-db.ts`.
 
 ## Architecture
 

@@ -20,9 +20,14 @@ Sign in with a seeded account — e.g. **`thanakorn@acme.co` / `password`** (all
 npm run build      # production build
 npm run start      # serve the production build
 npm run typecheck
+npm test           # vitest — unit + integration (spins up its own test DB)
 npm run db:seed    # re-seed (wipes + reloads the demo data)
 npm run db:studio  # browse the DB in Prisma Studio
 ```
+
+## Tests
+
+`npm test` runs [Vitest](https://vitest.dev): **unit** tests for the pure logic (dates, `quad`/`dueInfo`/`decorate`, selectors, i18n key-parity) and **integration** tests that exercise the Prisma-backed store, the auth logic (credentials, session-version revocation, change-password, invite/accept), and the route handlers' authz (admin-only, 401/403) against a throwaway SQLite DB (`prisma/test.db`, provisioned fresh in `tests/global-setup.ts`). ~56 tests.
 
 The app is calibrated to a fixed "today" of **2026-07-12** so the seeded due dates, calendar and timeline read exactly as designed.
 
